@@ -7,7 +7,12 @@
     "start": "electron .",
     "build": "electron-builder --win portable"
   },
-  "keywords": ["countdown", "timer", "broadcast", "electron"],
+  "keywords": [
+    "countdown",
+    "timer",
+    "broadcast",
+    "electron"
+  ],
   "author": "ProCountdown",
   "license": "MIT",
   "devDependencies": {
@@ -24,7 +29,9 @@
       "target": [
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "artifactName": "ProCountdown.exe"
