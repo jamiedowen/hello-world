@@ -1,0 +1,681 @@
+/* ============================================================
+   ProCountdown — Broadcast-Quality Countdown Timer
+   ============================================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --color-bg-default:    #000000;
+  --color-text-default:  #e0e0e0;
+
+  --color-bg-green:      #003300;
+  --color-text-green:    #00ff44;
+  --color-glow-green:    #00ff44;
+
+  --color-bg-yellow:     #2a1a00;
+  --color-text-yellow:   #ffcc00;
+  --color-glow-yellow:   #ffcc00;
+
+  --color-bg-red:        #2a0000;
+  --color-text-red:      #ff2222;
+  --color-glow-red:      #ff2222;
+
+  --color-bg-overtime:   #1a0000;
+  --color-text-overtime: #ff2222;
+  --color-glow-overtime: #ff2222;
+
+  --panel-bg:            #111111;
+  --panel-border:        #2a2a2a;
+  --input-bg:            #1c1c1c;
+  --input-border:        #444444;
+  --row-label-color:     #888888;
+
+  --transition-color: 0.4s ease;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  font-family: 'Segoe UI', 'Arial', sans-serif;
+  font-size: 14px;
+  background-color: var(--color-bg-default);
+  color: var(--color-text-default);
+  transition: background-color var(--transition-color);
+  user-select: none;
+}
+
+/* ============================================================
+   UTILITY
+   ============================================================ */
+
+.hidden {
+  display: none !important;
+}
+
+/* ============================================================
+   DISPLAY AREA
+   ============================================================ */
+
+#display-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  transition: background-color var(--transition-color);
+}
+
+/* ============================================================
+   DRAG BAR
+   ============================================================ */
+
+#drag-bar {
+  height: 28px;
+  background: rgba(255, 255, 255, 0.04);
+  -webkit-app-region: drag;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+#drag-bar-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #555555;
+  text-transform: uppercase;
+}
+
+#drag-bar-close {
+  -webkit-app-region: no-drag;
+  font-size: 14px;
+  color: #555555;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+#drag-bar-close:hover {
+  color: #ff4444;
+}
+
+/* ============================================================
+   TOP BAR
+   ============================================================ */
+
+#top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 18px 0 18px;
+  flex-shrink: 0;
+}
+
+#top-bar-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  color: #555555;
+  text-transform: uppercase;
+}
+
+#time-of-day {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #999999;
+  transition: color var(--transition-color);
+}
+
+/* ============================================================
+   TIMER CONTAINER
+   ============================================================ */
+
+#timer-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+  min-height: 0;
+}
+
+#timer-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  color: #444444;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  transition: color var(--transition-color);
+}
+
+#main-timer {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: clamp(72px, 18vw, 220px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-default);
+  text-shadow: 0 0 30px rgba(224, 224, 224, 0.25),
+               0 0 60px rgba(224, 224, 224, 0.1);
+  transition: color var(--transition-color),
+              text-shadow var(--transition-color);
+  white-space: nowrap;
+}
+
+#overtime-indicator {
+  margin-top: 10px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: clamp(18px, 3.5vw, 42px);
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #ff2222;
+  text-shadow: 0 0 20px rgba(255, 34, 34, 0.6);
+  animation: overtime-pulse 1s ease-in-out infinite;
+}
+
+@keyframes overtime-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+/* ============================================================
+   MESSAGE DISPLAY
+   ============================================================ */
+
+#message-display {
+  margin: 0 32px 10px 32px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  padding: 10px 18px;
+  background: rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+  text-align: center;
+}
+
+#message-text {
+  font-size: clamp(16px, 2.5vw, 32px);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+/* ============================================================
+   STATUS BAR
+   ============================================================ */
+
+#status-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 4px 14px 6px 14px;
+  flex-shrink: 0;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 3px;
+  border: 1.5px solid currentColor;
+}
+
+.badge-stopped  { color: #555555; border-color: #444444; }
+.badge-running  { color: #00cc44; border-color: #00cc44; }
+.badge-paused   { color: #ffaa00; border-color: #ffaa00; }
+.badge-overtime { color: #ff2222; border-color: #ff2222; }
+
+/* ============================================================
+   COLOR STATES ON BODY
+   ============================================================ */
+
+/* DEFAULT */
+body.color-default #main-timer {
+  color: var(--color-text-default);
+  text-shadow: 0 0 30px rgba(224, 224, 224, 0.2),
+               0 0 60px rgba(224, 224, 224, 0.08);
+}
+body.color-default #display-area {
+  background-color: var(--color-bg-default);
+}
+
+/* GREEN */
+body.color-green #display-area {
+  background-color: var(--color-bg-green);
+}
+body.color-green #main-timer {
+  color: var(--color-text-green);
+  text-shadow: 0 0 30px rgba(0, 255, 68, 0.5),
+               0 0 80px rgba(0, 255, 68, 0.25),
+               0 0 120px rgba(0, 255, 68, 0.1);
+}
+body.color-green #timer-label { color: #006622; }
+body.color-green #time-of-day { color: #00aa33; }
+
+/* YELLOW */
+body.color-yellow #display-area {
+  background-color: var(--color-bg-yellow);
+}
+body.color-yellow #main-timer {
+  color: var(--color-text-yellow);
+  text-shadow: 0 0 30px rgba(255, 204, 0, 0.5),
+               0 0 80px rgba(255, 204, 0, 0.25),
+               0 0 120px rgba(255, 204, 0, 0.1);
+}
+body.color-yellow #timer-label { color: #665500; }
+body.color-yellow #time-of-day { color: #aa8800; }
+
+/* RED */
+body.color-red #display-area {
+  background-color: var(--color-bg-red);
+}
+body.color-red #main-timer {
+  color: var(--color-text-red);
+  text-shadow: 0 0 30px rgba(255, 34, 34, 0.6),
+               0 0 80px rgba(255, 34, 34, 0.3),
+               0 0 120px rgba(255, 34, 34, 0.15);
+}
+body.color-red #timer-label { color: #660000; }
+body.color-red #time-of-day { color: #aa2222; }
+
+/* OVERTIME */
+body.color-overtime #display-area {
+  background-color: var(--color-bg-overtime);
+}
+body.color-overtime #main-timer {
+  color: var(--color-text-overtime);
+  text-shadow: 0 0 30px rgba(255, 34, 34, 0.6),
+               0 0 80px rgba(255, 34, 34, 0.3),
+               0 0 120px rgba(255, 34, 34, 0.15);
+}
+body.color-overtime #timer-label {
+  color: #660000;
+  content: 'OVERTIME';
+}
+
+/* Flash-off state for overtime (JS toggles this class) */
+body.color-overtime.flash-off #display-area {
+  background-color: #000000;
+}
+body.color-overtime.flash-off #main-timer {
+  color: #660000;
+  text-shadow: none;
+}
+
+/* Red entrance flash */
+body.flash-red-on #display-area {
+  background-color: #550000;
+}
+body.flash-red-on #main-timer {
+  color: #ffffff;
+  text-shadow: 0 0 40px rgba(255, 100, 100, 0.8);
+}
+
+/* ============================================================
+   CONTROL PANEL
+   ============================================================ */
+
+#control-panel {
+  flex-shrink: 0;
+  background: var(--panel-bg);
+  border-top: 1px solid var(--panel-border);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.row-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--row-label-color);
+  text-transform: uppercase;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   TIME INPUTS
+   ============================================================ */
+
+.time-inputs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.time-inputs input[type="number"] {
+  width: 56px;
+  height: 36px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  color: #dddddd;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  padding: 0;
+  outline: none;
+  transition: border-color 0.15s;
+  -moz-appearance: textfield;
+}
+
+.time-inputs input[type="number"]::-webkit-inner-spin-button,
+.time-inputs input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.time-inputs input[type="number"]:focus {
+  border-color: #4488cc;
+}
+
+.time-sep {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: #555555;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.btn {
+  height: 36px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: filter 0.1s, transform 0.08s;
+  white-space: nowrap;
+  outline: none;
+}
+
+.btn:active {
+  transform: scale(0.97);
+  filter: brightness(0.85);
+}
+
+.btn:hover {
+  filter: brightness(1.15);
+}
+
+/* Start */
+.btn-start {
+  background: #1a6e2e;
+  color: #00ff44;
+  border: 1px solid #00aa33;
+}
+
+/* Pause */
+.btn-pause {
+  background: #5a4500;
+  color: #ffcc00;
+  border: 1px solid #aa8800;
+}
+
+/* Resume */
+.btn-resume {
+  background: #1a6e2e;
+  color: #00ff44;
+  border: 1px solid #00aa33;
+}
+
+/* Reset */
+.btn-reset {
+  background: #2a1a1a;
+  color: #cc4444;
+  border: 1px solid #882222;
+}
+
+/* Adjust */
+.btn-adjust {
+  background: #0d2233;
+  color: #4488cc;
+  border: 1px solid #224466;
+  height: 32px;
+  padding: 0 12px;
+}
+
+/* Send */
+.btn-send {
+  background: #0d2233;
+  color: #44aaff;
+  border: 1px solid #226699;
+}
+
+/* Clear message */
+.btn-clear-msg {
+  background: #2a1a1a;
+  color: #cc4444;
+  border: 1px solid #882222;
+}
+
+/* Option buttons */
+.btn-option {
+  background: #1a1a2a;
+  color: #9999cc;
+  border: 1px solid #333366;
+  height: 32px;
+  padding: 0 14px;
+  font-size: 11px;
+}
+
+/* Main buttons group */
+.main-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ============================================================
+   ADJUST BUTTONS
+   ============================================================ */
+
+.adjust-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ============================================================
+   WARNING INPUTS
+   ============================================================ */
+
+.warning-items {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.warning-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.warning-item-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #666666;
+  text-transform: uppercase;
+  min-width: 40px;
+}
+
+.warning-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-green  { background: #00ff44; box-shadow: 0 0 6px #00ff44; }
+.dot-yellow { background: #ffcc00; box-shadow: 0 0 6px #ffcc00; }
+.dot-red    { background: #ff2222; box-shadow: 0 0 6px #ff2222; }
+
+.warn-input {
+  width: 44px;
+  height: 28px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  color: #cccccc;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  padding: 0;
+  outline: none;
+  transition: border-color 0.15s;
+  -moz-appearance: textfield;
+}
+
+.warn-input::-webkit-inner-spin-button,
+.warn-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.warn-input:focus {
+  border-color: #4488cc;
+}
+
+.warn-sep {
+  font-size: 12px;
+  color: #555555;
+  font-weight: 700;
+}
+
+/* ============================================================
+   MESSAGE INPUT
+   ============================================================ */
+
+#message-input {
+  flex: 1;
+  height: 34px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  color: #dddddd;
+  font-size: 13px;
+  padding: 0 10px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+#message-input:focus {
+  border-color: #4488cc;
+}
+
+/* ============================================================
+   OPTIONS ROW
+   ============================================================ */
+
+.option-checkboxes {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.option-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #888888;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.option-label:hover {
+  color: #aaaaaa;
+}
+
+.option-label input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  accent-color: #4488cc;
+}
+
+.option-buttons {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* ============================================================
+   KEYBOARD SHORTCUT HINT
+   ============================================================ */
+
+#shortcut-hint {
+  font-size: 10px;
+  color: #333333;
+  margin-left: auto;
+  letter-spacing: 0.05em;
+}
+
+/* ============================================================
+   FULLSCREEN ADJUSTMENTS
+   ============================================================ */
+
+body.fullscreen #drag-bar {
+  /* Still keep it small in fullscreen */
+  height: 24px;
+}
+
+body.fullscreen #control-panel {
+  padding: 8px 14px;
+}
+
+/* ============================================================
+   SCROLLBAR SUPPRESSION
+   ============================================================ */
+
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}

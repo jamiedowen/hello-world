@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProCountdown</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="color-default">
+
+  <!-- DISPLAY AREA (captured for PIP) -->
+  <div id="display-area">
+
+    <!-- Drag bar for frameless window -->
+    <div id="drag-bar">
+      <span id="drag-bar-title">PROCOUNTDOWN</span>
+      <span id="drag-bar-close" title="Close">&#10005;</span>
+    </div>
+
+    <!-- Top info bar -->
+    <div id="top-bar">
+      <span id="top-bar-label">COUNTDOWN TIMER</span>
+      <span id="time-of-day" class="hidden">00:00:00</span>
+    </div>
+
+    <!-- Main timer display -->
+    <div id="timer-container">
+      <div id="timer-label">TIME REMAINING</div>
+      <div id="main-timer">00:00:00</div>
+      <div id="overtime-indicator" class="hidden">OVERTIME +<span id="overtime-value">00:00</span></div>
+    </div>
+
+    <!-- On-screen message display -->
+    <div id="message-display" class="hidden">
+      <div id="message-text"></div>
+    </div>
+
+    <!-- Status bar -->
+    <div id="status-bar">
+      <span id="status-badge" class="badge badge-stopped">STOPPED</span>
+    </div>
+
+  </div>
+  <!-- END DISPLAY AREA -->
+
+  <!-- CONTROL PANEL -->
+  <div id="control-panel">
+
+    <!-- Row 1: Set Time + Main Controls -->
+    <div class="control-row" id="row-settime">
+      <span class="row-label">SET TIME:</span>
+      <div class="time-inputs">
+        <input type="number" id="input-hours" min="0" max="99" value="0" placeholder="HH">
+        <span class="time-sep">:</span>
+        <input type="number" id="input-minutes" min="0" max="59" value="10" placeholder="MM">
+        <span class="time-sep">:</span>
+        <input type="number" id="input-seconds" min="0" max="59" value="0" placeholder="SS">
+      </div>
+      <div class="main-buttons">
+        <button id="btn-start" class="btn btn-start">START</button>
+        <button id="btn-pause" class="btn btn-pause hidden">PAUSE</button>
+        <button id="btn-resume" class="btn btn-resume hidden">RESUME</button>
+        <button id="btn-reset" class="btn btn-reset">RESET</button>
+      </div>
+    </div>
+
+    <!-- Row 2: Adjust Time -->
+    <div class="control-row" id="row-adjust">
+      <span class="row-label">ADJUST:</span>
+      <div class="adjust-buttons">
+        <button class="btn btn-adjust" data-adjust="300">+5m</button>
+        <button class="btn btn-adjust" data-adjust="60">+1m</button>
+        <button class="btn btn-adjust" data-adjust="30">+30s</button>
+        <button class="btn btn-adjust" data-adjust="-30">-30s</button>
+        <button class="btn btn-adjust" data-adjust="-60">-1m</button>
+        <button class="btn btn-adjust" data-adjust="-300">-5m</button>
+      </div>
+    </div>
+
+    <!-- Row 3: Warning Thresholds -->
+    <div class="control-row" id="row-warnings">
+      <span class="row-label">WARNINGS:</span>
+      <div class="warning-items">
+
+        <div class="warning-item">
+          <span class="warning-dot dot-green"></span>
+          <span class="warning-item-label">GREEN</span>
+          <input type="number" id="warn-green-min" min="0" max="99" value="5" class="warn-input">
+          <span class="warn-sep">m</span>
+          <input type="number" id="warn-green-sec" min="0" max="59" value="0" class="warn-input">
+          <span class="warn-sep">s</span>
+        </div>
+
+        <div class="warning-item">
+          <span class="warning-dot dot-yellow"></span>
+          <span class="warning-item-label">YELLOW</span>
+          <input type="number" id="warn-yellow-min" min="0" max="99" value="5" class="warn-input">
+          <span class="warn-sep">m</span>
+          <input type="number" id="warn-yellow-sec" min="0" max="59" value="0" class="warn-input">
+          <span class="warn-sep">s</span>
+        </div>
+
+        <div class="warning-item">
+          <span class="warning-dot dot-red"></span>
+          <span class="warning-item-label">RED</span>
+          <input type="number" id="warn-red-min" min="0" max="99" value="1" class="warn-input">
+          <span class="warn-sep">m</span>
+          <input type="number" id="warn-red-sec" min="0" max="59" value="0" class="warn-input">
+          <span class="warn-sep">s</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Row 4: On-Screen Message -->
+    <div class="control-row" id="row-message">
+      <span class="row-label">MESSAGE:</span>
+      <input type="text" id="message-input" placeholder="Type message to display..." maxlength="120">
+      <button id="btn-send" class="btn btn-send">SEND</button>
+      <button id="btn-clear-msg" class="btn btn-clear-msg">CLEAR</button>
+    </div>
+
+    <!-- Row 5: Options -->
+    <div class="control-row" id="row-options">
+      <div class="option-checkboxes">
+        <label class="option-label">
+          <input type="checkbox" id="chk-timeofday"> Show Time of Day
+        </label>
+        <label class="option-label">
+          <input type="checkbox" id="chk-overtime" checked> Overtime Mode
+        </label>
+        <label class="option-label">
+          <input type="checkbox" id="chk-flashred" checked> Flash on Red
+        </label>
+      </div>
+      <div class="option-buttons">
+        <button id="btn-hide-controls" class="btn btn-option">HIDE CONTROLS</button>
+        <button id="btn-fullscreen" class="btn btn-option">FULLSCREEN</button>
+      </div>
+    </div>
+
+  </div>
+  <!-- END CONTROL PANEL -->
+
+  <script src="renderer.js"></script>
+</body>
+</html>
