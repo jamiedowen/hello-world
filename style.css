@@ -2,6 +2,15 @@
    ProCountdown — Broadcast-Quality Countdown Timer
    ============================================================ */
 
+@font-face {
+  font-family: 'Bebas Neue';
+  src: url('fonts/bebas-neue-latin-400-normal.woff2') format('woff2'),
+       url('fonts/bebas-neue-latin-400-normal.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -136,10 +145,10 @@ body {
 }
 
 #time-of-day {
-  font-family: 'Consolas', 'Courier New', monospace;
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-family: 'Bebas Neue', 'Arial', sans-serif;
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
   color: #999999;
   transition: color var(--transition-color);
 }
@@ -169,11 +178,11 @@ body {
 }
 
 #main-timer {
-  font-family: 'Consolas', 'Courier New', monospace;
-  font-size: clamp(72px, 18vw, 220px);
-  font-weight: 700;
+  font-family: 'Bebas Neue', 'Arial', sans-serif;
+  font-size: clamp(72px, 19vw, 240px);
+  font-weight: 400;
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.06em;
   font-variant-numeric: tabular-nums;
   color: var(--color-text-default);
   text-shadow: 0 0 30px rgba(224, 224, 224, 0.25),
@@ -185,10 +194,10 @@ body {
 
 #overtime-indicator {
   margin-top: 10px;
-  font-family: 'Consolas', 'Courier New', monospace;
+  font-family: 'Bebas Neue', 'Arial', sans-serif;
   font-size: clamp(18px, 3.5vw, 42px);
-  font-weight: 700;
-  letter-spacing: 0.15em;
+  font-weight: 400;
+  letter-spacing: 0.2em;
   color: #ff2222;
   text-shadow: 0 0 20px rgba(255, 34, 34, 0.6);
   animation: overtime-pulse 1s ease-in-out infinite;
