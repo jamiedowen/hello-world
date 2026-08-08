@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wurm Unlimited Deed Planner</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>&#127968;</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+  <div id="topbar">
+    <h1>&#9876; Deed Planner</h1>
+
+    <div class="group">
+      <label>W</label>
+      <input type="number" id="gridW" min="5" max="250" value="50">
+      <label>H</label>
+      <input type="number" id="gridH" min="5" max="250" value="50">
+      <button id="resizeBtn">Resize</button>
+    </div>
+
+    <div class="group">
+      <button id="zoomOut" class="icon">&minus;</button>
+      <span id="zoomLabel" style="min-width:42px;text-align:center;">100%</span>
+      <button id="zoomIn" class="icon">+</button>
+      <button id="zoomReset">Reset view</button>
+    </div>
+
+    <div class="group">
+      <button id="undoBtn" title="Ctrl+Z">&#8630; Undo</button>
+      <button id="redoBtn" title="Ctrl+Y">&#8631; Redo</button>
+    </div>
+
+    <div class="group">
+      <button id="exportPng">Export PNG</button>
+      <button id="exportJson">Export JSON</button>
+      <button id="importJsonBtn">Import JSON</button>
+      <input type="file" id="importJsonFile" accept="application/json" style="display:none;">
+    </div>
+
+    <div class="group">
+      <button id="clearBtn" class="danger">Clear All</button>
+    </div>
+
+    <div class="spacer"></div>
+    <div class="group">
+      <label><input type="checkbox" id="toggleGrid" checked> Grid</label>
+      <label><input type="checkbox" id="toggleCoords"> Coords</label>
+    </div>
+  </div>
+
+  <div id="main">
+
+    <div id="sidebar">
+
+      <div class="side-section">
+        <h2>Tools</h2>
+        <div class="tool-grid" id="toolButtons">
+          <div class="tool-btn active" data-tool="terrain"><span class="ico">&#127793;</span>Terrain</div>
+          <div class="tool-btn" data-tool="wall"><span class="ico">&#128300;</span>Wall/Fence</div>
+          <div class="tool-btn" data-tool="house"><span class="ico">&#127968;</span>House</div>
+          <div class="tool-btn" data-tool="deed"><span class="ico">&#127937;</span>Deed Area</div>
+          <div class="tool-btn" data-tool="marker"><span class="ico">&#128205;</span>Marker</div>
+          <div class="tool-btn" data-tool="erase"><span class="ico">&#10060;</span>Erase</div>
+          <div class="tool-btn" data-tool="pan"><span class="ico">&#9995;</span>Pan</div>
+        </div>
+        <div class="hint">Drag to paint. Right-drag / middle-drag / space-drag pans anywhere. Scroll to zoom.</div>
+      </div>
+
+      <div class="side-section" id="panel-terrain">
+        <h2>Terrain</h2>
+        <div class="swatch-list" id="terrainList"></div>
+      </div>
+
+      <div class="side-section" id="panel-wall" style="display:none;">
+        <h2>Wall / Fence Type</h2>
+        <div class="swatch-list" id="wallList"></div>
+        <div class="hint">Click near a tile edge to place. Click an identical wall again to remove it.</div>
+      </div>
+
+      <div class="side-section" id="panel-house" style="display:none;">
+        <h2>House Floor</h2>
+        <div class="swatch-list" id="houseFloorList"></div>
+        <h2 style="margin-top:8px;">House Wall</h2>
+        <div class="swatch-list" id="houseWallList"></div>
+        <div class="hint">Drag a rectangle to stamp a floored, walled building.</div>
+      </div>
+
+      <div class="side-section" id="panel-deed" style="display:none;">
+        <div class="hint">Drag to mark tiles as inside/outside the deed. First tile dragged decides add or remove.</div>
+      </div>
+
+      <div class="side-section" id="panel-marker" style="display:none;">
+        <div class="hint">Click a tile to add a labelled pin (well, forge, altar...). Click an existing pin to rename or clear it to delete.</div>
+      </div>
+
+    </div>
+
+    <div id="canvas-wrap">
+      <canvas id="grid-canvas"></canvas>
+      <div id="marker-editor">
+        <input type="text" id="markerInput" maxlength="24" placeholder="Label...">
+        <button id="markerSave">Save</button>
+        <button id="markerCancel">X</button>
+      </div>
+    </div>
+
+    <div id="rightpanel">
+      <div class="side-section">
+        <h2>Deed &amp; Upkeep</h2>
+        <div class="stat-row"><span>Grid size</span><b id="statGrid">-</b></div>
+        <div class="stat-row"><span>Deed tiles</span><b id="statDeedTiles">0</b></div>
+        <div class="group" style="margin-top:6px;flex-direction:column;align-items:stretch;gap:4px;">
+          <label>Upkeep, copper/tile/day</label>
+          <input type="number" id="upkeepRate" value="1.0" step="0.1" min="0" style="width:100%;">
+        </div>
+        <div class="stat-row"><span>Est. daily upkeep</span><b id="statUpkeepDay">-</b></div>
+        <div class="stat-row"><span>Est. monthly upkeep</span><b id="statUpkeepMonth">-</b></div>
+        <div class="hint">Rough estimate only &mdash; actual Wurm Unlimited upkeep depends on server settings.</div>
+      </div>
+
+      <div class="side-section">
+        <h2>Saved Plans</h2>
+        <div class="group">
+          <input type="text" id="saveName" placeholder="Plan name">
+          <button id="saveBtn">Save</button>
+        </div>
+        <div class="saves-list" id="savesList"></div>
+      </div>
+
+      <div class="side-section">
+        <h2>Legend</h2>
+        <div id="legendWalls" style="display:flex;flex-direction:column;gap:3px;"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="statusbar">
+    <span>Tile: <b id="statusTile">-, -</b></span>
+    <span>Tool: <b id="statusTool">Terrain</b></span>
+    <span>Zoom: <b id="statusZoom">100%</b></span>
+    <span id="autosaveNote" class="hint" style="padding:0;">Autosaving to this browser...</span>
+  </div>
+
+</div>
+<script src="app.js"></script>
+</body>
+</html>
