@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THAT'S AI: The Clicker</title>
+<style>
+  :root{
+    --bg: #0f0f0f;
+    --panel: #181818;
+    --panel2: #212121;
+    --border: #303030;
+    --text: #f1f1f1;
+    --muted: #aaaaaa;
+    --red: #ff0033;
+    --red-dark: #b3001f;
+    --green: #3ea6ff;
+    --yellow: #ffd23f;
+    --boss: #ff5c5c;
+  }
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0; height:100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow-x:hidden;
+  }
+  #app{ max-width: 1200px; margin: 0 auto; padding: 12px 16px 60px; }
+
+  header{
+    display:flex; align-items:center; gap:12px; padding: 8px 4px 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  header .logo{
+    font-size: 28px; background: var(--red); color:white; font-weight:800;
+    padding: 6px 10px; border-radius: 8px; letter-spacing: 1px;
+    box-shadow: 0 0 18px rgba(255,0,51,.5);
+  }
+  header h1{ font-size: 20px; margin:0; }
+  header p{ margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+  header .save-controls{ margin-left:auto; display:flex; gap:8px; }
+  header button{
+    background: var(--panel2); color: var(--text); border:1px solid var(--border);
+    padding: 6px 10px; border-radius: 6px; cursor:pointer; font-size:12px;
+  }
+  header button:hover{ background:#2a2a2a; }
+
+  .layout{ display:grid; grid-template-columns: 1.4fr 1fr; gap: 20px; }
+  @media (max-width: 880px){ .layout{ grid-template-columns: 1fr; } }
+
+  .video-card{
+    background: var(--panel); border:1px solid var(--border); border-radius: 12px;
+    overflow:hidden;
+  }
+  .thumb{
+    aspect-ratio: 16/9; background:
+      radial-gradient(circle at 30% 20%, #3a1010, transparent 60%),
+      radial-gradient(circle at 80% 80%, #101a3a, transparent 60%),
+      linear-gradient(135deg, #1c1c1c, #0a0a0a);
+    display:flex; align-items:center; justify-content:center; position:relative;
+    border-bottom: 1px solid var(--border);
+  }
+  .thumb .play{
+    width:64px; height:64px; border-radius:50%; background: rgba(255,0,51,.85);
+    display:flex; align-items:center; justify-content:center; font-size:26px;
+    box-shadow: 0 0 24px rgba(255,0,51,.6);
+  }
+  .thumb .badge{
+    position:absolute; bottom:10px; right:10px; background:rgba(0,0,0,.8);
+    padding:2px 6px; border-radius:4px; font-size:12px;
+  }
+  .video-meta{ padding: 12px 14px; }
+  .video-meta h2{ margin:0 0 4px; font-size:16px; }
+  .video-meta .sub{ color: var(--muted); font-size: 12px; }
+
+  .comment-box{ padding: 14px; border-top: 1px solid var(--border); }
+  .comment-box .row{ display:flex; gap:10px; align-items:flex-start; }
+  .avatar{
+    width:36px; height:36px; border-radius:50%; flex:none;
+    background: linear-gradient(135deg,#ff0033,#3ea6ff);
+    display:flex; align-items:center; justify-content:center; font-size:18px;
+  }
+  .fake-input{
+    flex:1; background: var(--panel2); border:1px solid var(--border);
+    border-radius: 18px; padding: 9px 14px; color: var(--muted); font-size: 13px;
+    min-height: 18px; word-break: break-word;
+  }
+  .fake-input .cursor{
+    display:inline-block; width:1px; height:14px; background: var(--text);
+    margin-left:2px; vertical-align: -2px; animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  #clickBtnWrap{ position:relative; padding: 20px 14px 24px; text-align:center; }
+  #clickBtn{
+    position:relative; z-index:2;
+    border:none; cursor:pointer; user-select:none;
+    background: linear-gradient(180deg, var(--red), var(--red-dark));
+    color:white; font-weight:800; font-size: clamp(18px,3.2vw,26px);
+    padding: 20px 30px; border-radius: 999px; letter-spacing: 1px;
+    box-shadow: 0 10px 0 #7a0016, 0 14px 24px rgba(255,0,51,.35);
+    transition: transform .06s ease;
+    width: 100%; max-width: 360px;
+  }
+  #clickBtn:active{ transform: translateY(6px); box-shadow: 0 4px 0 #7a0016, 0 8px 16px rgba(255,0,51,.3); }
+  #clickBtn small{ display:block; font-weight:500; font-size:11px; opacity:.85; margin-top:2px; }
+
+  .floaters{ position:absolute; inset:0; pointer-events:none; overflow:visible; }
+  .floater{
+    position:absolute; font-weight:800; color: var(--red);
+    animation: floatUp 1s ease-out forwards; white-space:nowrap;
+    text-shadow: 0 0 6px rgba(0,0,0,.6);
+  }
+  @keyframes floatUp{
+    0%{ transform: translate(-50%, 0) scale(1); opacity:1; }
+    100%{ transform: translate(-50%, -90px) scale(1.15); opacity:0; }
+  }
+
+  .stats-strip{ display:flex; justify-content:center; gap: 24px; padding: 4px 0 10px; flex-wrap:wrap; }
+  .stats-strip div{ text-align:center; }
+  .stats-strip .n{ font-size: 18px; font-weight:800; color: var(--yellow); }
+  .stats-strip .l{ font-size: 11px; color: var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+
+  .combo{ font-size:12px; color: var(--green); min-height:16px; text-align:center; }
+
+  /* Shop */
+  .shop{
+    background: var(--panel); border:1px solid var(--border); border-radius: 12px;
+    display:flex; flex-direction:column; overflow:hidden; max-height: 640px;
+  }
+  .tabs{ display:flex; border-bottom:1px solid var(--border); }
+  .tabs button{
+    flex:1; background:none; border:none; color: var(--muted); padding: 10px;
+    cursor:pointer; font-size:13px; font-weight:700; border-bottom: 2px solid transparent;
+  }
+  .tabs button.active{ color: var(--text); border-bottom-color: var(--red); }
+  .list{ overflow-y:auto; padding: 8px; display:flex; flex-direction:column; gap:8px; }
+  .item{
+    display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px;
+    border:1px solid var(--border); background: var(--panel2); cursor:pointer;
+    transition: background .15s, opacity .15s;
+  }
+  .item:hover:not(.disabled){ background:#2a2a2a; }
+  .item.disabled{ opacity:.45; cursor:not-allowed; }
+  .item .icon{ font-size:22px; width:34px; text-align:center; flex:none; }
+  .item .info{ flex:1; min-width:0; }
+  .item .info .name{ font-size:13px; font-weight:700; display:flex; gap:6px; align-items:center; }
+  .item .info .name .owned{
+    font-size:10px; background:#333; padding:1px 6px; border-radius:8px; color:var(--muted);
+  }
+  .item .info .desc{ font-size:11px; color: var(--muted); margin-top:1px; }
+  .item .cost{ font-size:12px; font-weight:700; color: var(--yellow); flex:none; text-align:right; }
+  .item .cost .cps{ display:block; font-size:10px; color: var(--green); font-weight:500; }
+
+  /* Boss panel (inline, pushes layout instead of overlapping it) */
+  #bossOverlay{
+    display:none; padding: 0 14px 6px;
+  }
+  #bossOverlay.active{ display:block; }
+  .boss-card{
+    background: linear-gradient(180deg, #2a0d0d, #150404);
+    border: 2px solid var(--boss); border-radius: 14px; padding: 12px 16px;
+    box-shadow: 0 0 20px rgba(255,0,51,.35);
+    animation: bossIn .35s ease;
+  }
+  @keyframes bossIn{ from{ transform: translateY(-12px); opacity:0;} to{ transform: translateY(0); opacity:1; } }
+  .boss-top{ display:flex; align-items:center; gap:10px; }
+  .boss-avatar{
+    width:44px; height:44px; border-radius:50%; background:#333; flex:none;
+    display:flex; align-items:center; justify-content:center; font-size:22px;
+    border: 2px solid var(--boss);
+  }
+  .boss-name{ font-weight:800; font-size:14px; }
+  .boss-tag{ font-size:10px; color:#ff9a9a; }
+  .boss-timer{ margin-left:auto; font-size:12px; font-weight:700; color: var(--yellow); }
+  .boss-bubble{
+    background:#1a1a1a; border:1px solid #3a1414; border-radius:10px; padding:8px 12px;
+    margin: 10px 0; font-size: 13px; min-height: 40px; display:flex; align-items:center;
+  }
+  .boss-hpbar-wrap{ background:#3a0a0a; border-radius:8px; overflow:hidden; height:16px; border:1px solid #5a1010; }
+  .boss-hpbar{ height:100%; background: linear-gradient(90deg,#ff5c5c,#ff0033); transition: width .15s ease; }
+  .boss-hp-label{ font-size:10px; color:#ffb3b3; margin-top:3px; text-align:right; }
+  .boss-timerbar-wrap{ background:#222; border-radius:6px; overflow:hidden; height:6px; margin-top:8px; }
+  .boss-timerbar{ height:100%; background: var(--yellow); transition: width .2s linear; }
+
+  #toastWrap{
+    position: fixed; top: 14px; right: 14px; z-index: 60;
+    display:flex; flex-direction:column; gap:8px; align-items:flex-end;
+  }
+  .toast{
+    background: var(--panel2); border:1px solid var(--border); border-left:4px solid var(--green);
+    padding: 10px 14px; border-radius:8px; font-size:13px; max-width:280px;
+    animation: toastIn .25s ease, toastOut .4s ease 3.2s forwards;
+    box-shadow: 0 6px 18px rgba(0,0,0,.4);
+  }
+  .toast.warn{ border-left-color: var(--yellow); }
+  @keyframes toastIn{ from{ transform: translateX(30px); opacity:0;} to{ transform: translateX(0); opacity:1; } }
+  @keyframes toastOut{ to{ opacity:0; transform: translateX(30px); } }
+
+  #shake{ animation: none; }
+  .shake-anim{ animation: shake .3s ease; }
+  @keyframes shake{
+    0%,100%{ transform: translate(0,0); }
+    20%{ transform: translate(-4px,2px); }
+    40%{ transform: translate(4px,-2px); }
+    60%{ transform: translate(-3px,-1px); }
+    80%{ transform: translate(3px,1px); }
+  }
+
+  footer{ text-align:center; color: var(--muted); font-size:11px; margin-top: 30px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">AI</div>
+    <div>
+      <h1>THAT'S AI: The Clicker</h1>
+      <p>Defend the comment section. One reply at a time.</p>
+    </div>
+    <div class="save-controls">
+      <button id="muteBtn" title="Toggle sound">🔊</button>
+      <button id="resetBtn">Reset save</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div id="shake">
+      <div class="video-card">
+        <div class="thumb">
+          <div class="play">▶</div>
+          <div class="badge">12:04</div>
+        </div>
+        <div class="video-meta">
+          <h2>Incredible VFX Breakdown — Lightning Spark Effect (2026)</h2>
+          <div class="sub">2.1M views · <span id="viewCount">100,000</span> comments and counting</div>
+        </div>
+        <div class="comment-box">
+          <div class="row">
+            <div class="avatar">🫵</div>
+            <div class="fake-input" id="fakeInput">THAT'S AI<span class="cursor"></span></div>
+          </div>
+        </div>
+
+        <div id="bossOverlay">
+          <div class="boss-card">
+            <div class="boss-top">
+              <div class="boss-avatar" id="bossAvatar">🥸</div>
+              <div>
+                <div class="boss-name" id="bossName">Brottarn</div>
+                <div class="boss-tag">Pro-AI Defender · appeared in the replies</div>
+              </div>
+              <div class="boss-timer" id="bossTimer">20s</div>
+            </div>
+            <div class="boss-bubble" id="bossLine">"Afraid your friend claude will get fired?"</div>
+            <div class="boss-hpbar-wrap"><div class="boss-hpbar" id="bossHpBar" style="width:100%"></div></div>
+            <div class="boss-hp-label" id="bossHpLabel">100 / 100</div>
+            <div class="boss-timerbar-wrap"><div class="boss-timerbar" id="bossTimerBar" style="width:100%"></div></div>
+          </div>
+        </div>
+
+        <div id="clickBtnWrap">
+          <div class="floaters" id="floaters"></div>
+          <button id="clickBtn">
+            POST: THAT'S AI 🤖
+            <small>click to reply on every video</small>
+          </button>
+        </div>
+        <div class="stats-strip">
+          <div><div class="n" id="statClout">0</div><div class="l">Clout</div></div>
+          <div><div class="n" id="statCps">0</div><div class="l">Clout / sec</div></div>
+          <div><div class="n" id="statPower">1</div><div class="l">Per reply</div></div>
+          <div><div class="n" id="statBosses">0</div><div class="l">Defenders owned</div></div>
+        </div>
+        <div class="combo" id="comboLabel">&nbsp;</div>
+      </div>
+    </div>
+
+    <div class="shop">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="buildings">Auto-Posters</button>
+        <button class="tab-btn" data-tab="upgrades">Upgrades</button>
+      </div>
+      <div class="list" id="buildingsList"></div>
+      <div class="list" id="upgradesList" style="display:none;"></div>
+    </div>
+  </div>
+
+  <footer>Not affiliated with YouTube. Every "artist" mentioned is fictional-ish. Please don't actually spam this on real videos.</footer>
+</div>
+
+<div id="toastWrap"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- persistence & core state ---------- */
+  const SAVE_KEY = "thatsai-clicker-save-v1";
+
+  const buildingDefs = [
+    { id:"macro",   name:"Copy-Paste Macro",        icon:"📋", desc:"Reposts THAT'S AI while you blink.", baseCost:15,        cps:0.1 },
+    { id:"alt",     name:"Alt Account",              icon:"🕵️", desc:"A totally different person who also thinks it's AI.", baseCost:100,       cps:1 },
+    { id:"bots",    name:"Bot Farm",                 icon:"🤖", desc:"Ironic, considering the subject matter.", baseCost:1100,      cps:8 },
+    { id:"brigade", name:"Comment Brigade",          icon:"📢", desc:"Twenty guys, one opinion.", baseCost:12000,     cps:47 },
+    { id:"report",  name:"Mass Report Botnet",       icon:"🚨", desc:"Reports the video for 'misinformation'.", baseCost:130000,    cps:260 },
+    { id:"algo",    name:"Discourse Algorithm",      icon:"🧠", desc:"Optimizes engagement via pure outrage.", baseCost:1400000,   cps:1400 },
+    { id:"viral",   name:"Viral Ratio Engine",       icon:"🔥", desc:"Ratios the VFX guy into oblivion.", baseCost:20000000,  cps:7800 },
+    { id:"granite", name:"Granite Slab Server Farm", icon:"🪨", desc:"Cooked entirely over a hand-crafted campfire, allegedly.", baseCost:330000000, cps:44000 },
+  ];
+
+  const upgradeDefs = [
+    { id:"caps",   name:"Caps Lock Key Stuck",         icon:"⌨️", desc:"+1 clout per reply.", cost:50,      type:"add", value:1 },
+    { id:"mech",   name:"Dramatic Mechanical Keyboard", icon:"⌨️✨", desc:"x2 clout per reply.", cost:500,     type:"mul", value:2 },
+    { id:"dual",   name:"Two Monitors, One Truth",      icon:"🖥️", desc:"x2 clout per reply.", cost:5000,    type:"mul", value:2 },
+    { id:"energy", name:"Energy Drink IV Drip",         icon:"⚡", desc:"x3 clout per reply.", cost:50000,   type:"mul", value:3 },
+    { id:"blue",   name:"Verified Blue Check Copium",   icon:"✅", desc:"x3 clout per reply.", cost:500000,  type:"mul", value:3 },
+    { id:"algoup", name:"Learned The Algorithm's Weaknesses", icon:"📈", desc:"All auto-posters +50% output.", cost:2000000, type:"cpsmul", value:1.5 },
+    { id:"granite2", name:"Own Personal Slab of Granite", icon:"🪨✨", desc:"x2 clout per reply.", cost:8000000, type:"mul", value:2 },
+  ];
+
+  const bossPool = [
+    {
+      name: "Brottarn", avatar:"🥸",
+      lines: [
+        "Afraid your friend claude will get fired?",
+      ]
+    },
+    {
+      name: "Teach", avatar:"🏴‍☠️",
+      lines: [
+        "It's like a whole new flavour of mass psychosis.",
+        "*point at thing* AI!!! AI!!!! It's AI!!!",
+        "Oh cooked my food using electricity, did you? Well I don't want it!",
+        "Bring me something cooked over a hand crafted campfire on a slab of granite.",
+      ]
+    },
+    {
+      name: "John Halo", avatar:"🎅",
+      lines: [
+        "Why did you have to set him off",
+      ]
+    },
+    {
+      name: "u/VFXReplyGuy", avatar:"🎬",
+      lines: [
+        "I really can't figure out what the fuck the comments are on about",
+        "What AI artists are credited in the description???",
+        "These people are nuts genuinely",
+        "AI touches truly everything now",
+        "Yeah you can have some VFX engineer code out a million coordinates for a light spark effect and have him invoice you for a quarter million because it took him 3 months to do it all manually",
+        "Or you just algo it for 2% of the cost",
+        "How does it ruin the clip?",
+      ]
+    },
+  ];
+
+  const defaultState = () => ({
+    clout: 0,
+    totalClicks: 0,
+    clickBase: 1,
+    clickAdd: 0,
+    clickMul: 1,
+    cpsMul: 1,
+    owned: Object.fromEntries(buildingDefs.map(b=>[b.id,0])),
+    boughtUpgrades: [],
+    bossesDefeated: 0,
+    combo: 0,
+    lastClickTime: 0,
+    muted: false,
+  });
+
+  let state = load();
+  let boss = null; // active boss fight object
+  let bossTimeoutId = null;
+  let nextBossAt = 25 + Math.random()*40;
+
+  function load(){
+    try{
+      const raw = localStorage.getItem(SAVE_KEY);
+      if(!raw) return defaultState();
+      const parsed = JSON.parse(raw);
+      return Object.assign(defaultState(), parsed, {
+        owned: Object.assign(Object.fromEntries(buildingDefs.map(b=>[b.id,0])), parsed.owned||{})
+      });
+    }catch(e){ return defaultState(); }
+  }
+  function save(){
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+  }
+
+  /* ---------- derived values ---------- */
+  function clickPower(){
+    return (state.clickBase + state.clickAdd) * state.clickMul;
+  }
+  function totalCps(){
+    let sum = 0;
+    for(const b of buildingDefs) sum += (state.owned[b.id]||0) * b.cps;
+    return sum * state.cpsMul;
+  }
+  function buildingCost(def){
+    const owned = state.owned[def.id]||0;
+    return Math.ceil(def.baseCost * Math.pow(1.15, owned));
+  }
+
+  /* ---------- formatting ---------- */
+  function fmt(n){
+    if(n < 1000) return (Math.round(n*10)/10).toString();
+    const units = ["","K","M","B","T","Qa","Qi","Sx","Sp","Oc"];
+    let u = 0;
+    while(n >= 1000 && u < units.length-1){ n/=1000; u++; }
+    return n.toFixed(n<10?2:n<100?1:0) + units[u];
+  }
+
+  /* ---------- DOM refs ---------- */
+  const el = {
+    clout: document.getElementById("statClout"),
+    cps: document.getElementById("statCps"),
+    power: document.getElementById("statPower"),
+    bosses: document.getElementById("statBosses"),
+    combo: document.getElementById("comboLabel"),
+    clickBtn: document.getElementById("clickBtn"),
+    floaters: document.getElementById("floaters"),
+    buildingsList: document.getElementById("buildingsList"),
+    upgradesList: document.getElementById("upgradesList"),
+    shake: document.getElementById("shake"),
+    viewCount: document.getElementById("viewCount"),
+    fakeInput: document.getElementById("fakeInput"),
+    bossOverlay: document.getElementById("bossOverlay"),
+    bossAvatar: document.getElementById("bossAvatar"),
+    bossName: document.getElementById("bossName"),
+    bossLine: document.getElementById("bossLine"),
+    bossHpBar: document.getElementById("bossHpBar"),
+    bossHpLabel: document.getElementById("bossHpLabel"),
+    bossTimer: document.getElementById("bossTimer"),
+    bossTimerBar: document.getElementById("bossTimerBar"),
+    toastWrap: document.getElementById("toastWrap"),
+    resetBtn: document.getElementById("resetBtn"),
+    muteBtn: document.getElementById("muteBtn"),
+  };
+
+  /* ---------- toast ---------- */
+  function toast(msg, warn){
+    const t = document.createElement("div");
+    t.className = "toast" + (warn ? " warn" : "");
+    t.textContent = msg;
+    el.toastWrap.appendChild(t);
+    setTimeout(()=> t.remove(), 3700);
+  }
+
+  /* ---------- rendering ---------- */
+  function renderStats(){
+    el.clout.textContent = fmt(state.clout);
+    el.cps.textContent = fmt(totalCps());
+    el.power.textContent = fmt(clickPower());
+    el.bosses.textContent = state.bossesDefeated;
+    el.viewCount.textContent = (100000 + state.totalClicks).toLocaleString();
+  }
+
+  function renderShop(){
+    el.buildingsList.innerHTML = "";
+    for(const def of buildingDefs){
+      const cost = buildingCost(def);
+      const owned = state.owned[def.id]||0;
+      const affordable = state.clout >= cost;
+      const item = document.createElement("div");
+      item.className = "item" + (affordable ? "" : " disabled");
+      item.innerHTML = `
+        <div class="icon">${def.icon}</div>
+        <div class="info">
+          <div class="name">${def.name} <span class="owned">${owned}</span></div>
+          <div class="desc">${def.desc}</div>
+        </div>
+        <div class="cost">${fmt(cost)}<span class="cps">+${fmt(def.cps)}/s</span></div>
+      `;
+      item.addEventListener("click", ()=> buyBuilding(def));
+      el.buildingsList.appendChild(item);
+    }
+
+    el.upgradesList.innerHTML = "";
+    const avail = upgradeDefs.filter(u=> !state.boughtUpgrades.includes(u.id));
+    if(avail.length===0){
+      el.upgradesList.innerHTML = `<div class="item disabled"><div class="info"><div class="name">All upgrades owned</div><div class="desc">You have achieved peak copium.</div></div></div>`;
+    }
+    for(const def of avail){
+      const affordable = state.clout >= def.cost;
+      const item = document.createElement("div");
+      item.className = "item" + (affordable ? "" : " disabled");
+      item.innerHTML = `
+        <div class="icon">${def.icon}</div>
+        <div class="info">
+          <div class="name">${def.name}</div>
+          <div class="desc">${def.desc}</div>
+        </div>
+        <div class="cost">${fmt(def.cost)}</div>
+      `;
+      item.addEventListener("click", ()=> buyUpgrade(def));
+      el.upgradesList.appendChild(item);
+    }
+  }
+
+  function renderAll(){ renderStats(); renderShop(); }
+
+  /* ---------- buying ---------- */
+  function buyBuilding(def){
+    const cost = buildingCost(def);
+    if(state.clout < cost) return;
+    state.clout -= cost;
+    state.owned[def.id] = (state.owned[def.id]||0) + 1;
+    renderAll();
+    save();
+  }
+
+  function buyUpgrade(def){
+    if(state.clout < def.cost) return;
+    if(state.boughtUpgrades.includes(def.id)) return;
+    state.clout -= def.cost;
+    state.boughtUpgrades.push(def.id);
+    if(def.type === "add") state.clickAdd += def.value;
+    else if(def.type === "mul") state.clickMul *= def.value;
+    else if(def.type === "cpsmul") state.cpsMul *= def.value;
+    toast(`Unlocked: ${def.name}`);
+    renderAll();
+    save();
+  }
+
+  /* ---------- clicking ---------- */
+  const replyLines = ["THAT'S AI", "ITS AI BRO", "AI SLOP", "not real 🤖", "algorithm generated", "no soul detected"];
+
+  function spawnFloater(x, y, text){
+    const f = document.createElement("div");
+    f.className = "floater";
+    f.textContent = text;
+    f.style.left = x + "px";
+    f.style.top = y + "px";
+    el.floaters.appendChild(f);
+    setTimeout(()=> f.remove(), 1000);
+  }
+
+  function updateCombo(){
+    const now = performance.now();
+    if(now - state.lastClickTime < 700){
+      state.combo = Math.min(state.combo + 1, 999);
+    } else {
+      state.combo = 1;
+    }
+    state.lastClickTime = now;
+    if(state.combo >= 5){
+      el.combo.textContent = `${state.combo}x combo!`;
+    } else {
+      el.combo.textContent = "";
+    }
+  }
+  function comboMultiplier(){
+    if(state.combo >= 40) return 3;
+    if(state.combo >= 20) return 2;
+    if(state.combo >= 10) return 1.5;
+    return 1;
+  }
+
+  function typeFakeComment(){
+    const line = replyLines[Math.floor(Math.random()*replyLines.length)];
+    el.fakeInput.innerHTML = line + '<span class="cursor"></span>';
+  }
+
+  el.clickBtn.addEventListener("click", (ev)=>{
+    updateCombo();
+    const gained = clickPower() * comboMultiplier();
+    state.totalClicks++;
+
+    if(boss){
+      damageBoss(gained);
+      state.clout += gained * 0.4; // still trickle some clout while fighting
+      spawnFloater(ev.offsetX + 20*(Math.random()-0.5), 10, `-${fmt(gained)} HP`);
+    } else {
+      state.clout += gained;
+      spawnFloater(ev.offsetX + 20*(Math.random()-0.5), 10, `+${fmt(gained)}`);
+    }
+
+    typeFakeComment();
+    maybeSpawnBoss();
+    renderAll();
+  });
+
+  /* ---------- passive income tick ---------- */
+  let lastTick = performance.now();
+  function tick(now){
+    const dt = (now - lastTick) / 1000;
+    lastTick = now;
+    const gain = totalCps() * dt;
+    if(gain > 0) state.clout += gain;
+    if(!boss) renderStats();
+    else updateBossUI(dt);
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame((t)=>{ lastTick = t; requestAnimationFrame(tick); });
+
+  /* periodic light render + autosave */
+  setInterval(()=>{ renderShop(); save(); }, 4000);
+
+  /* ---------- boss fights ---------- */
+  function maybeSpawnBoss(){
+    if(boss) return;
+    if(state.totalClicks < nextBossAt) return;
+    spawnBoss();
+  }
+
+  function spawnBoss(){
+    const template = bossPool[Math.floor(Math.random()*bossPool.length)];
+    const difficulty = 1 + state.bossesDefeated * 0.35;
+    const hp = Math.max(20, Math.round((25 + state.bossesDefeated*18) * difficulty));
+    boss = {
+      name: template.name,
+      avatar: template.avatar,
+      lines: template.lines,
+      hp: hp,
+      maxHp: hp,
+      timeLeft: 20,
+      maxTime: 20,
+      lineTimer: 0,
+    };
+    nextBossAt = state.totalClicks + 60 + Math.random()*90 + state.bossesDefeated*10;
+
+    el.bossOverlay.classList.add("active");
+    el.bossName.textContent = boss.name;
+    el.bossAvatar.textContent = boss.avatar;
+    setBossLine();
+    renderBossBars();
+    toast(`${boss.name} appeared in the replies!`, true);
+  }
+
+  function setBossLine(){
+    boss.line = boss.lines[Math.floor(Math.random()*boss.lines.length)];
+    el.bossLine.textContent = `"${boss.line}"`;
+  }
+
+  function damageBoss(amount){
+    if(!boss) return;
+    boss.hp -= amount;
+    el.shake.classList.remove("shake-anim");
+    void el.shake.offsetWidth;
+    el.shake.classList.add("shake-anim");
+    if(boss.hp <= 0){
+      defeatBoss();
+      return;
+    }
+    renderBossBars();
+  }
+
+  function renderBossBars(){
+    const pct = Math.max(0, boss.hp / boss.maxHp * 100);
+    el.bossHpBar.style.width = pct + "%";
+    el.bossHpLabel.textContent = `${fmt(Math.max(0,boss.hp))} / ${fmt(boss.maxHp)}`;
+    const tpct = Math.max(0, boss.timeLeft / boss.maxTime * 100);
+    el.bossTimerBar.style.width = tpct + "%";
+    el.bossTimer.textContent = Math.ceil(boss.timeLeft) + "s";
+  }
+
+  function updateBossUI(dt){
+    if(!boss) return;
+    boss.timeLeft -= dt;
+    boss.lineTimer += dt;
+    if(boss.lineTimer > 3.5){
+      boss.lineTimer = 0;
+      setBossLine();
+    }
+    if(boss.timeLeft <= 0){
+      fleeBoss();
+      return;
+    }
+    renderBossBars();
+  }
+
+  function defeatBoss(){
+    const reward = Math.round(boss.maxHp * 4 * clickPower());
+    state.clout += reward;
+    state.bossesDefeated++;
+    toast(`Ratio'd ${boss.name}! +${fmt(reward)} clout`);
+    closeBoss();
+    renderAll();
+    save();
+  }
+
+  function fleeBoss(){
+    toast(`${boss.name} logged off before you could finish replying.`, true);
+    closeBoss();
+  }
+
+  function closeBoss(){
+    boss = null;
+    el.bossOverlay.classList.remove("active");
+  }
+
+  /* ---------- tabs ---------- */
+  document.querySelectorAll(".tab-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      const tab = btn.dataset.tab;
+      el.buildingsList.style.display = tab === "buildings" ? "flex" : "none";
+      el.upgradesList.style.display = tab === "upgrades" ? "flex" : "none";
+    });
+  });
+
+  /* ---------- reset ---------- */
+  el.resetBtn.addEventListener("click", ()=>{
+    if(!confirm("Reset all progress? This cannot be undone.")) return;
+    state = defaultState();
+    boss = null;
+    el.bossOverlay.classList.remove("active");
+    nextBossAt = 25 + Math.random()*40;
+    renderAll();
+    save();
+    toast("Progress reset.");
+  });
+
+  el.muteBtn.addEventListener("click", ()=>{
+    state.muted = !state.muted;
+    el.muteBtn.textContent = state.muted ? "🔇" : "🔊";
+    save();
+  });
+  el.muteBtn.textContent = state.muted ? "🔇" : "🔊";
+
+  window.addEventListener("beforeunload", save);
+
+  /* ---------- init ---------- */
+  renderAll();
+  if(state.totalClicks > 0){
+    toast(`Welcome back. ${fmt(state.clout)} clout waiting for you.`);
+  }
+})();
+</script>
+</body>
+</html>
