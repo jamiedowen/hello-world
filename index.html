@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CJ Autoworx</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+
+    <header id="topbar">
+      <div class="brand">
+        <span class="brand-icon">🔧</span>
+        <div>
+          <h1>CJ AUTOWORX</h1>
+          <p class="tagline">"we'll sort it, mate" — est. never audited</p>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-label">Day</span>
+          <span class="stat-value" id="stat-day">1</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Cash</span>
+          <span class="stat-value" id="stat-cash">£800</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Reputation</span>
+          <div class="rep-bar-track">
+            <div class="rep-bar-fill" id="rep-bar-fill"></div>
+          </div>
+        </div>
+        <div class="stat">
+          <span class="stat-label">HMRC Suspicion</span>
+          <div class="tax-bar-track">
+            <div class="tax-bar-fill" id="tax-bar-fill"></div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="board">
+
+      <section id="staff-panel" class="panel">
+        <h2>The Team</h2>
+        <div id="staff-list"></div>
+      </section>
+
+      <section id="queue-panel" class="panel">
+        <h2>Jobs In Today</h2>
+        <div id="job-queue"></div>
+      </section>
+
+      <section id="log-panel" class="panel">
+        <h2>Shop Log</h2>
+        <div id="log-list"></div>
+      </section>
+
+    </main>
+
+    <footer id="controls">
+      <button id="tax-btn" class="btn secondary">📠 Send Chris to do the books</button>
+      <button id="end-day-btn" class="btn primary">End Day ▶</button>
+    </footer>
+
+  </div>
+
+  <div id="overlay" class="hidden">
+    <div id="overlay-card">
+      <h2 id="overlay-title">Game Over</h2>
+      <p id="overlay-body"></p>
+      <button id="overlay-restart" class="btn primary">Reopen The Shop</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
