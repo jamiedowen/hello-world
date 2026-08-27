@@ -170,8 +170,9 @@
   .boss-avatar{
     width:44px; height:44px; border-radius:50%; background:#333; flex:none;
     display:flex; align-items:center; justify-content:center; font-size:22px;
-    border: 2px solid var(--boss);
+    border: 2px solid var(--boss); overflow:hidden;
   }
+  .boss-avatar img{ width:100%; height:100%; object-fit:cover; }
   .boss-name{ font-weight:800; font-size:14px; }
   .boss-tag{ font-size:10px; color:#ff9a9a; }
   .boss-timer{ margin-left:auto; font-size:12px; font-weight:700; color: var(--yellow); }
@@ -249,7 +250,7 @@
             <div class="boss-top">
               <div class="boss-avatar" id="bossAvatar">🥸</div>
               <div>
-                <div class="boss-name" id="bossName">Brottarn</div>
+                <div class="boss-name" id="bossName">Teach</div>
                 <div class="boss-tag">Pro-AI Defender · appeared in the replies</div>
               </div>
               <div class="boss-timer" id="bossTimer">20s</div>
@@ -321,31 +322,21 @@
     { id:"granite2", name:"Own Personal Slab of Granite", icon:"🪨✨", desc:"x2 clout per reply.", cost:8000000, type:"mul", value:2 },
   ];
 
+  // Every enemy is "Teach" — a single recurring pro-AI defender who cycles
+  // through the full set of pro-AI lines. TEACH_AVATAR_DATA_URI can be filled
+  // in with a base64 image later; until then the emoji is the fallback face.
+  const TEACH_AVATAR_DATA_URI = null;
+
   const bossPool = [
-    {
-      name: "Brottarn", avatar:"🥸",
-      lines: [
-        "Afraid your friend claude will get fired?",
-      ]
-    },
     {
       name: "Teach", avatar:"🏴‍☠️",
       lines: [
+        "Afraid your friend claude will get fired?",
         "It's like a whole new flavour of mass psychosis.",
         "*point at thing* AI!!! AI!!!! It's AI!!!",
         "Oh cooked my food using electricity, did you? Well I don't want it!",
         "Bring me something cooked over a hand crafted campfire on a slab of granite.",
-      ]
-    },
-    {
-      name: "John Halo", avatar:"🎅",
-      lines: [
         "Why did you have to set him off",
-      ]
-    },
-    {
-      name: "u/VFXReplyGuy", avatar:"🎬",
-      lines: [
         "I really can't figure out what the fuck the comments are on about",
         "What AI artists are credited in the description???",
         "These people are nuts genuinely",
@@ -625,7 +616,11 @@
 
     el.bossOverlay.classList.add("active");
     el.bossName.textContent = boss.name;
-    el.bossAvatar.textContent = boss.avatar;
+    if(TEACH_AVATAR_DATA_URI){
+      el.bossAvatar.innerHTML = `<img src="${TEACH_AVATAR_DATA_URI}" alt="Teach">`;
+    } else {
+      el.bossAvatar.textContent = boss.avatar;
+    }
     setBossLine();
     renderBossBars();
     toast(`${boss.name} appeared in the replies!`, true);
