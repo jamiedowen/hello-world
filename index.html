@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CJ Autoworx</title>
+<style>
+:root {
+  --bg: #14161c;
+  --panel: #1d2029;
+  --panel-2: #242835;
+  --border: #333849;
+  --text: #e9ebf2;
+  --muted: #9a9fb0;
+  --accent: #ff8a3d;
+  --accent-2: #4dd9c0;
+  --danger: #ff5d5d;
+  --gold: #ffcf56;
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: radial-gradient(circle at top, #1b1f29, var(--bg) 60%);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+#app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 20px 100px;
+}
+
+#topbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  margin-bottom: 18px;
+}
+
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-icon { font-size: 34px; }
+.brand h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
+.tagline { margin: 2px 0 0; font-size: 12px; color: var(--muted); font-style: italic; }
+
+.stats { display: flex; gap: 22px; flex-wrap: wrap; align-items: center; }
+.stat { display: flex; flex-direction: column; gap: 4px; min-width: 90px; }
+.stat-label { font-size: 11px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px; }
+.stat-value { font-size: 20px; font-weight: 700; }
+
+.rep-bar-track, .tax-bar-track {
+  width: 130px;
+  height: 10px;
+  background: #0f1117;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.rep-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--danger), var(--gold), var(--accent-2));
+  width: 55%;
+  transition: width .4s ease;
+}
+.tax-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-2), var(--gold), var(--danger));
+  width: 0%;
+  transition: width .4s ease;
+}
+
+#board {
+  display: grid;
+  grid-template-columns: 260px 1fr 320px;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 950px) {
+  #board { grid-template-columns: 1fr; }
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+.panel h2 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+
+.staff-card {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  margin-bottom: 10px;
+}
+.staff-card.busy { opacity: 0.5; }
+.staff-name { font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+.staff-role { font-size: 12px; color: var(--muted); margin: 4px 0 6px; }
+.staff-skills { display: flex; gap: 8px; font-size: 11px; }
+.skill-pill {
+  background: #0f1117;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2px 8px;
+}
+.status-pill {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: #1c3d33;
+  color: var(--accent-2);
+}
+.status-pill.busy-pill { background: #3d1c1c; color: var(--danger); }
+
+#job-queue { display: flex; flex-direction: column; gap: 10px; min-height: 60px; }
+.empty-note { color: var(--muted); font-size: 13px; padding: 20px 0; text-align: center; }
+
+.job-card {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+.job-card.legendary {
+  border: 1px solid var(--gold);
+  box-shadow: 0 0 0 1px rgba(255,207,86,0.25), 0 0 18px rgba(255,207,86,0.08);
+}
+.job-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.job-customer { font-weight: 700; }
+.job-car { font-size: 12px; color: var(--muted); }
+.job-request { font-size: 13px; margin: 6px 0; }
+.job-payout { font-weight: 700; color: var(--accent-2); white-space: nowrap; }
+.job-legendary-tag {
+  font-size: 10px;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  display: block;
+}
+.job-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+
+.btn {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .1s ease, filter .15s ease;
+}
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn.assign { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+.btn.assign:hover:not(:disabled) { border-color: var(--accent-2); }
+.btn.primary { background: var(--accent); color: #1a1200; padding: 10px 22px; font-size: 14px; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); padding: 10px 16px; }
+.btn.secondary:hover:not(:disabled) { border-color: var(--gold); }
+
+#log-list {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.log-entry {
+  font-size: 12.5px;
+  line-height: 1.4;
+  border-left: 3px solid var(--border);
+  padding: 4px 0 4px 8px;
+  color: var(--muted);
+}
+.log-entry.good { border-color: var(--accent-2); color: var(--text); }
+.log-entry.bad { border-color: var(--danger); color: var(--text); }
+.log-entry.legendary { border-color: var(--gold); color: var(--gold); }
+.log-entry.tax { border-color: #7a7fff; color: var(--text); }
+.log-day-tag { color: var(--muted); margin-right: 4px; }
+
+#controls {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(0deg, var(--bg) 60%, transparent);
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10,10,14,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+#overlay.hidden { display: none; }
+#overlay-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 32px;
+  max-width: 460px;
+  text-align: center;
+}
+#overlay-card h2 { margin-top: 0; color: var(--accent); }
+#overlay-body { color: var(--muted); white-space: pre-line; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div id="app">
+
+    <header id="topbar">
+      <div class="brand">
+        <span class="brand-icon">🔧</span>
+        <div>
+          <h1>CJ AUTOWORX</h1>
+          <p class="tagline">"we'll sort it, mate" — est. never audited</p>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-label">Day</span>
+          <span class="stat-value" id="stat-day">1</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Cash</span>
+          <span class="stat-value" id="stat-cash">£800</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Reputation</span>
+          <div class="rep-bar-track">
+            <div class="rep-bar-fill" id="rep-bar-fill"></div>
+          </div>
+        </div>
+        <div class="stat">
+          <span class="stat-label">HMRC Suspicion</span>
+          <div class="tax-bar-track">
+            <div class="tax-bar-fill" id="tax-bar-fill"></div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="board">
+
+      <section id="staff-panel" class="panel">
+        <h2>The Team</h2>
+        <div id="staff-list"></div>
+      </section>
+
+      <section id="queue-panel" class="panel">
+        <h2>Jobs In Today</h2>
+        <div id="job-queue"></div>
+      </section>
+
+      <section id="log-panel" class="panel">
+        <h2>Shop Log</h2>
+        <div id="log-list"></div>
+      </section>
+
+    </main>
+
+    <footer id="controls">
+      <button id="tax-btn" class="btn secondary">📠 Send Chris to do the books</button>
+      <button id="end-day-btn" class="btn primary">End Day ▶</button>
+    </footer>
+
+  </div>
+
+  <div id="overlay" class="hidden">
+    <div id="overlay-card">
+      <h2 id="overlay-title">Game Over</h2>
+      <p id="overlay-body"></p>
+      <button id="overlay-restart" class="btn primary">Reopen The Shop</button>
+    </div>
+  </div>
+
+  <script>
+"use strict";
+
+/* ---------- content pools ---------- */
+
+const CARS = [
+  "Vauxhall Corsa", "Ford Fiesta", "VW Golf", "BMW 3 Series", "Audi A3",
+  "Nissan Qashqai", "Toyota Corolla", "Honda Civic", "Mini Cooper",
+  "Seat Ibiza", "Skoda Octavia", "Renault Clio", "Ford Focus", "Kia Sportage",
+];
+
+const CUSTOMER_NAMES = [
+  "Dave", "Sam", "Priya", "Liam", "Sophie", "Tom", "Grace", "Mo",
+  "Ben", "Chloe", "Amara", "Jack", "Ellie", "Callum", "Nadia", "Ryan",
+  "Yusuf", "Holly", "Aiden", "Freya",
+];
+
+const JOB_TYPES = {
+  lighting: {
+    label: "Underglow / LED lighting install",
+    icon: "💡",
+    basePayout: 220,
+  },
+  interior: {
+    label: "Interior mod / CarPlay retrofit",
+    icon: "📱",
+    basePayout: 260,
+  },
+};
+
+const LIGHTING_GREAT = [
+  "wires it in clean, no dodgy earths, customer actually smiles.",
+  "gets the underglow perfectly synced and doesn't even set anything on fire.",
+  "finishes early and even hoovers the footwells. A miracle.",
+];
+const LIGHTING_OK = [
+  "gets the lights working, mostly. One flickers when it rains.",
+  "installs it fine but leaves three unexplained wires taped to the parcel shelf.",
+  "finishes the job, though the dashboard now smells faintly of solder.",
+];
+const LIGHTING_BOTCH = [
+  "shorts the interior fuse. The customer's radio now only plays at 2am.",
+  "melts a bit of the door card with the heat gun and blames 'thermal expansion'.",
+  "wires the boot light to the horn. Nobody notices until the car park incident.",
+];
+
+const INTERIOR_GREAT = [
+  "does a spotless CarPlay retrofit, even hides the cabling like a pro.",
+  "finishes the dash trim so well the customer asks if it's still the same car.",
+  "gets it done under time and the customer leaves a good review, somehow.",
+];
+const INTERIOR_OK = [
+  "gets CarPlay working but Siri now only responds in a Scottish accent for some reason.",
+  "finishes the mod, though the glovebox no longer fully closes.",
+  "gets it running, but there's a faint ticking noise nobody wants to investigate.",
+];
+const INTERIOR_BOTCH = [
+  "cracks the dashboard trim clipping it back in and covers it with a sticker.",
+  "wires the screen backwards so the reversing camera now shows the sky.",
+  "leaves a socket wrench inside the door panel. It rattles forever. It's fine.",
+];
+
+const GLUE_EVENTS = [
+  "Jarrad's glue gun goes off mid-job. There is now glue on the steering wheel, the ceiling, and somehow the outside of the windscreen.",
+  "Jarrad sneezes with the glue gun still warm. The passenger seat will never be the same.",
+  "Jarrad loses a glue stick inside the dashboard. It is never found. It becomes part of the car's legend.",
+  "Jarrad tries to hide a glue mistake with more glue. This does not work.",
+];
+
+const CHRIS_LATE_LINES = [
+  "Chris says he'll 'definitely sort the tax return this weekend'.",
+  "Chris has opened the HMRC website in a tab. He has not clicked anything on it.",
+  "Chris files the receipts under 'other'. The 'other' box is now a bin bag.",
+  "Chris says self-assessment is 'more of a January problem'.",
+];
+
+const VITO_CUSTOMER = "Mr. Kapoor";
+const VITO_LINES = [
+  "Mr. Kapoor drops off his Mercedes Vito for a simple ambient lighting and CarPlay upgrade for his airport run business.",
+  "By lunchtime the Vito's headliner is half unclipped, there are two colours of LED strip fighting each other, and Jarrad has glued a CarPlay unit directly to the dashboard at a slight angle.",
+  "Chris tells Mr. Kapoor it's 'basically a custom job now' and writes up an invoice for £3,000.",
+  "Mr. Kapoor, visibly regretting every decision that led him here, pays it anyway because the van is already in pieces and he has a school run in forty minutes.",
+  "The team high-fives. Nobody mentions the glue smell that will never fully leave the vents.",
+];
+
+const LEGENDARY_FOLLOWUPS = [
+  "Word gets around about 'the Vito job'. Somehow this brings in more customers, not fewer.",
+  "Someone's cousin heard CJ Autoworx 'basically rebuilt a Mercedes' and wants the same deal.",
+  "A bloke shows up asking specifically for 'whatever they did to that Vito'. Nobody has the heart to explain.",
+];
+
+/* ---------- state ---------- */
+
+function freshState() {
+  return {
+    day: 1,
+    cash: 800,
+    reputation: 55,
+    taxNeglect: 10,
+    vitoHappened: false,
+    vitoQueuedForDay: 5,
+    gameOver: false,
+    stats: { great: 0, ok: 0, botch: 0, glue: 0, legendary: 0 },
+    staff: {
+      you: {
+        key: "you", name: "You", role: "Owner / does a bit of everything",
+        skill: { lighting: 55, interior: 55 }, busy: false, glueChaos: false,
+      },
+      jarrad: {
+        key: "jarrad", name: "Jarrad", role: "Lighting guy. Glue enthusiast.",
+        skill: { lighting: 72, interior: 58 }, busy: false, glueChaos: true,
+      },
+      chris: {
+        key: "chris", name: "Chris", role: "Interior mods. Does the books. Allegedly.",
+        skill: { lighting: 40, interior: 63 }, busy: false, glueChaos: false,
+      },
+    },
+    queue: [],
+    log: [],
+  };
+}
+
+let state = freshState();
+let jobIdCounter = 1;
+
+/* ---------- helpers ---------- */
+
+function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function pick(arr) { return arr[rand(0, arr.length - 1)]; }
+function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
+
+function addLog(text, cls) {
+  state.log.push({ day: state.day, text, cls: cls || "" });
+}
+
+/* ---------- job generation ---------- */
+
+function makeRegularJob() {
+  const typeKey = Math.random() < 0.5 ? "lighting" : "interior";
+  const type = JOB_TYPES[typeKey];
+  const difficulty = rand(30, 70);
+  const variance = rand(-40, 60);
+  const payout = Math.max(80, Math.round(type.basePayout + variance));
+  return {
+    id: jobIdCounter++,
+    typeKey,
+    customer: pick(CUSTOMER_NAMES),
+    car: pick(CARS),
+    difficulty,
+    payout,
+    legendary: false,
+  };
+}
+
+function makeVitoJob() {
+  return {
+    id: jobIdCounter++,
+    typeKey: "interior",
+    customer: VITO_CUSTOMER,
+    car: "Mercedes-Benz Vito",
+    difficulty: 999,
+    payout: 3000,
+    legendary: true,
+    isVito: true,
+  };
+}
+
+function makeLegendaryFollowupJob() {
+  const typeKey = Math.random() < 0.5 ? "lighting" : "interior";
+  const type = JOB_TYPES[typeKey];
+  return {
+    id: jobIdCounter++,
+    typeKey,
+    customer: pick(CUSTOMER_NAMES),
+    car: pick(CARS),
+    difficulty: rand(40, 80),
+    payout: Math.round(type.basePayout * 1.4),
+    legendary: true,
+  };
+}
+
+function generateDailyQueue() {
+  const jobs = [];
+  const count = clamp(1 + Math.floor(state.reputation / 40) + rand(0, 1), 1, 4);
+  for (let i = 0; i < count; i++) jobs.push(makeRegularJob());
+
+  if (!state.vitoHappened && state.day >= state.vitoQueuedForDay) {
+    jobs.push(makeVitoJob());
+  } else if (state.vitoHappened && state.day > state.vitoQueuedForDay + 10 && Math.random() < 0.12) {
+    jobs.push(makeLegendaryFollowupJob());
+  }
+
+  state.queue = jobs;
+}
+
+/* ---------- resolution ---------- */
+
+function resolveJob(jobId, staffKey) {
+  const job = state.queue.find(j => j.id === jobId);
+  const staff = state.staff[staffKey];
+  if (!job || !staff || staff.busy) return;
+
+  staff.busy = true;
+  state.queue = state.queue.filter(j => j.id !== jobId);
+
+  const typeInfo = JOB_TYPES[job.typeKey];
+  const jobDesc = `${job.customer}'s ${job.car} (${typeInfo.label})`;
+
+  if (job.isVito) {
+    state.vitoHappened = true;
+    VITO_LINES.forEach((line, i) => {
+      addLog(line, i === VITO_LINES.length - 1 ? "legendary" : "");
+    });
+    state.cash += job.payout;
+    state.reputation = clamp(state.reputation - 20, 0, 100);
+    state.stats.legendary++;
+    addLog(`💰 Invoice paid in full: +£${job.payout}. Reputation takes a hit, but everyone's talking about it.`, "legendary");
+    render();
+    return;
+  }
+
+  const skill = staff.skill[job.typeKey];
+  const roll = skill - job.difficulty + rand(-20, 20);
+
+  let outcome, payout, repDelta;
+  if (roll > 35) {
+    outcome = "great";
+    payout = Math.round(job.payout * 1.15);
+    repDelta = rand(2, 5);
+    state.stats.great++;
+    addLog(`✅ ${staff.name} handles ${jobDesc} — ${pick(job.typeKey === "lighting" ? LIGHTING_GREAT : INTERIOR_GREAT)}`, "good");
+  } else if (roll > -10) {
+    outcome = "ok";
+    payout = job.payout;
+    repDelta = rand(-1, 1);
+    state.stats.ok++;
+    addLog(`🔧 ${staff.name} handles ${jobDesc} — ${pick(job.typeKey === "lighting" ? LIGHTING_OK : INTERIOR_OK)}`, "");
+  } else {
+    outcome = "botch";
+    payout = Math.round(job.payout * 0.6);
+    repDelta = rand(-8, -3);
+    state.stats.botch++;
+    addLog(`💥 ${staff.name} handles ${jobDesc} — ${pick(job.typeKey === "lighting" ? LIGHTING_BOTCH : INTERIOR_BOTCH)}`, "bad");
+  }
+
+  if (job.legendary) {
+    payout = Math.round(payout * 1.3);
+    addLog(pick(LEGENDARY_FOLLOWUPS), "legendary");
+  }
+
+  if (staff.glueChaos && Math.random() < 0.35) {
+    state.stats.glue++;
+    state.reputation = clamp(state.reputation - 2, 0, 100);
+    addLog(`🧴 ${pick(GLUE_EVENTS)}`, "bad");
+  }
+
+  state.cash += payout;
+  state.reputation = clamp(state.reputation + repDelta, 0, 100);
+  addLog(`💰 Customer pays £${payout}.`, outcome === "botch" ? "bad" : "good");
+
+  render();
+}
+
+function sendChrisToDoBooks() {
+  const chris = state.staff.chris;
+  if (chris.busy || state.gameOver) return;
+  chris.busy = true;
+  const relief = rand(15, 28);
+  state.taxNeglect = clamp(state.taxNeglect - relief, 0, 100);
+  addLog(`📠 Chris spends the day on the books instead of jobs. HMRC suspicion drops by ${relief}. He looks personally offended by this experience.`, "tax");
+  render();
+}
+
+/* ---------- day cycle ---------- */
+
+function endDay() {
+  if (state.gameOver) return;
+
+  const leftover = state.queue.filter(j => !j.isVito);
+  if (leftover.length > 0) {
+    state.reputation = clamp(state.reputation - leftover.length, 0, 100);
+    addLog(`😒 ${leftover.length} customer(s) got tired of waiting and left. Somehow the phone still rings tomorrow.`, "bad");
+  }
+
+  state.taxNeglect = clamp(state.taxNeglect + rand(2, 5), 0, 100);
+  if (Math.random() < 0.25) addLog(pick(CHRIS_LATE_LINES), "tax");
+
+  if (state.day % 14 === 0) {
+    const fine = Math.round(state.taxNeglect * rand(8, 16));
+    state.cash -= fine;
+    if (fine > 150) {
+      addLog(`📮 HMRC letter arrives. An audit finds "irregularities". Fine: £${fine}. Chris says he's "shocked, honestly".`, "tax");
+    } else {
+      addLog(`📮 HMRC sends a routine reminder. Minor fine of £${fine} for a late filing. Could've been worse.`, "tax");
+    }
+    state.taxNeglect = clamp(Math.round(state.taxNeglect * 0.4), 0, 100);
+  }
+
+  Object.values(state.staff).forEach(s => (s.busy = false));
+
+  state.day += 1;
+  generateDailyQueue();
+
+  if (state.cash < 0) {
+    state.gameOver = true;
+    showGameOver();
+  }
+
+  render();
+}
+
+/* ---------- rendering ---------- */
+
+const el = {
+  day: document.getElementById("stat-day"),
+  cash: document.getElementById("stat-cash"),
+  repFill: document.getElementById("rep-bar-fill"),
+  taxFill: document.getElementById("tax-bar-fill"),
+  staffList: document.getElementById("staff-list"),
+  jobQueue: document.getElementById("job-queue"),
+  logList: document.getElementById("log-list"),
+  taxBtn: document.getElementById("tax-btn"),
+  endDayBtn: document.getElementById("end-day-btn"),
+  overlay: document.getElementById("overlay"),
+  overlayTitle: document.getElementById("overlay-title"),
+  overlayBody: document.getElementById("overlay-body"),
+  overlayRestart: document.getElementById("overlay-restart"),
+};
+
+function render() {
+  el.day.textContent = state.day;
+  el.cash.textContent = `£${state.cash.toLocaleString()}`;
+  el.repFill.style.width = `${state.reputation}%`;
+  el.taxFill.style.width = `${state.taxNeglect}%`;
+
+  el.staffList.innerHTML = "";
+  Object.values(state.staff).forEach(s => {
+    const card = document.createElement("div");
+    card.className = "staff-card" + (s.busy ? " busy" : "");
+    card.innerHTML = `
+      <div class="staff-name">${s.name}
+        <span class="status-pill ${s.busy ? "busy-pill" : ""}">${s.busy ? "Busy" : "Free"}</span>
+      </div>
+      <div class="staff-role">${s.role}</div>
+      <div class="staff-skills">
+        <span class="skill-pill">💡 ${s.skill.lighting}</span>
+        <span class="skill-pill">📱 ${s.skill.interior}</span>
+      </div>
+    `;
+    el.staffList.appendChild(card);
+  });
+
+  el.jobQueue.innerHTML = "";
+  if (state.queue.length === 0) {
+    el.jobQueue.innerHTML = `<div class="empty-note">No jobs waiting. Suspiciously quiet.</div>`;
+  }
+  state.queue.forEach(job => {
+    const type = JOB_TYPES[job.typeKey];
+    const card = document.createElement("div");
+    card.className = "job-card" + (job.legendary ? " legendary" : "");
+    const actions = Object.values(state.staff).map(s => {
+      const disabled = s.busy ? "disabled" : "";
+      return `<button class="btn assign" data-job="${job.id}" data-staff="${s.key}" ${disabled}>${s.name}</button>`;
+    }).join("");
+    card.innerHTML = `
+      ${job.legendary ? `<span class="job-legendary-tag">${job.isVito ? "★ the vito job" : "★ legendary comeback"}</span>` : ""}
+      <div class="job-top">
+        <div>
+          <div class="job-customer">${job.customer}</div>
+          <div class="job-car">${job.car}</div>
+        </div>
+        <div class="job-payout">£${job.payout.toLocaleString()}</div>
+      </div>
+      <div class="job-request">${type.icon} ${type.label}</div>
+      <div class="job-actions">${actions}</div>
+    `;
+    el.jobQueue.appendChild(card);
+  });
+
+  el.logList.innerHTML = "";
+  state.log.slice(-80).forEach(entry => {
+    const line = document.createElement("div");
+    line.className = "log-entry " + entry.cls;
+    line.innerHTML = `<span class="log-day-tag">Day ${entry.day}</span>${entry.text}`;
+    el.logList.appendChild(line);
+  });
+
+  el.taxBtn.disabled = state.staff.chris.busy || state.gameOver;
+  el.endDayBtn.disabled = state.gameOver;
+}
+
+function showGameOver() {
+  el.overlayTitle.textContent = "CJ Autoworx Has Gone Bust";
+  el.overlayBody.textContent =
+`The bank account hit £${state.cash.toLocaleString()} on day ${state.day}.
+HMRC got there in the end.
+
+Jobs done well: ${state.stats.great}
+Jobs that were "fine": ${state.stats.ok}
+Full botches: ${state.stats.botch}
+Glue incidents: ${state.stats.glue}
+Legendary jobs: ${state.stats.legendary}
+
+Somehow, right up to the end, customers kept coming.`;
+  el.overlay.classList.remove("hidden");
+}
+
+/* ---------- events ---------- */
+
+el.jobQueue.addEventListener("click", e => {
+  const btn = e.target.closest("button.assign");
+  if (!btn) return;
+  resolveJob(Number(btn.dataset.job), btn.dataset.staff);
+});
+
+el.taxBtn.addEventListener("click", sendChrisToDoBooks);
+el.endDayBtn.addEventListener("click", endDay);
+el.overlayRestart.addEventListener("click", () => {
+  state = freshState();
+  jobIdCounter = 1;
+  generateDailyQueue();
+  el.overlay.classList.add("hidden");
+  render();
+});
+
+/* ---------- init ---------- */
+
+generateDailyQueue();
+addLog("First day open. The sign outside still says 'CJ AUTOWORX — carplay, lighting, and vibes'.", "");
+render();
+  </script>
+</body>
+</html>
