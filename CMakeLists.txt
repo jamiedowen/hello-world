@@ -80,6 +80,12 @@ if(M84_BUILD_TESTS)
     target_link_libraries(Midnight84RenderTest PRIVATE Midnight84 juce::juce_audio_utils juce::juce_dsp
         juce::juce_recommended_config_flags)
 
+    juce_add_console_app(Midnight84FullSong PRODUCT_NAME "Midnight84FullSong")
+    target_sources(Midnight84FullSong PRIVATE tests/FullSong.cpp)
+    target_compile_definitions(Midnight84FullSong PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+    target_link_libraries(Midnight84FullSong PRIVATE Midnight84 juce::juce_audio_utils juce::juce_dsp
+        juce::juce_recommended_config_flags)
+
     juce_add_console_app(Midnight84DemoSong PRODUCT_NAME "Midnight84DemoSong")
     target_sources(Midnight84DemoSong PRIVATE tests/DemoSong.cpp)
     target_compile_definitions(Midnight84DemoSong PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)

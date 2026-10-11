@@ -7,7 +7,8 @@ Harmor / Sawer (drive, pumping, big detuned saws).
 
 ![Midnight 84](docs/screenshot.png)
 
-**Listen:** [full demo](demo/midnight84_demo_full.mp3) · [bass lines only](demo/midnight84_demo_bass_only.mp3) ·
+**Listen:** [**Neon Requiem** (full 3-minute track)](demo/midnight84_neon_requiem.mp3) ·
+[full demo](demo/midnight84_demo_full.mp3) · [bass lines only](demo/midnight84_demo_bass_only.mp3) ·
 [Crimson Overdrive lead solo](demo/midnight84_lead_solo.mp3) · [lead with band](demo/midnight84_lead_with_band.mp3)
 (rendered offline from the plugin itself with `tests/DemoSong.cpp`; the drums in the full mix are simple synthesized placeholders)
 
@@ -126,4 +127,5 @@ Source/
   PluginEditor.*    UI layout and background art
 tests/RenderTest.cpp  offline render of every preset (cmake -DM84_BUILD_TESTS=ON)
 tests/DemoSong.cpp    renders the demo tracks in demo/ (pass "lead" for the lead solo)
+tests/FullSong.cpp    renders "Neon Requiem", a full arranged track (pass "stems" for per-track stems)
 ```
