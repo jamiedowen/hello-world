@@ -7,6 +7,9 @@ Harmor / Sawer (drive, pumping, big detuned saws).
 
 ![Midnight 84](docs/screenshot.png)
 
+**Listen:** [full demo](demo/midnight84_demo_full.mp3) · [bass lines only](demo/midnight84_demo_bass_only.mp3)
+(rendered offline from the plugin itself with `tests/DemoSong.cpp`; the drums in the full mix are simple synthesized placeholders)
+
 ## Features
 
 - **3 oscillators**: sine / triangle / saw / square, with octave, semitone, fine tune, pulse width,
@@ -120,4 +123,5 @@ Source/
   Components.*      knobs, selectors, scope, preset bar
   PluginEditor.*    UI layout and background art
 tests/RenderTest.cpp  offline render of every preset (cmake -DM84_BUILD_TESTS=ON)
+tests/DemoSong.cpp    renders the demo track in demo/
 ```
