@@ -75,14 +75,14 @@ private:
     {
         struct Osc { std::atomic<float> *wave, *oct, *semi, *fine, *pw, *level, *unison, *detune; };
         std::array<Osc, m84::kNumOscs> osc;
-        std::atomic<float> *subLevel, *subOct, *subWave, *noise, *spread;
+        std::atomic<float> *subLevel, *subOct, *subWave, *noise, *spread, *grit, *feedback, *oscSync, *oscFM;
         std::atomic<float> *fltType, *cutoff, *res, *fltDrive, *fltEnv, *fltKey, *fltVel, *fltLfo;
         std::atomic<float> *fA, *fD, *fS, *fR, *aA, *aD, *aS, *aR, *ampVel;
         std::atomic<float> *lfoWave, *lfoRate, *lfoSync, *lfoSyncRate, *lfoRetrig, *lfoPitch, *lfoPW;
         std::atomic<float> *voiceMode, *polyphony, *glide, *bendRange, *analog;
         std::atomic<float> *drvType, *drvAmt, *drvTone, *drvMix, *chRate, *chDepth, *chMix;
         std::atomic<float> *dlyTime, *dlyFb, *dlyTone, *dlyMix, *revSize, *revDamp, *revMix;
-        std::atomic<float> *pumpRate, *pumpAmt, *master;
+        std::atomic<float> *pumpRate, *pumpAmt, *master, *hq;
     };
 
     void cacheParameterPointers();

@@ -35,6 +35,8 @@ void Midnight84AudioProcessor::cacheParameterPointers()
 
     pp.subLevel = get (ID::subLevel);   pp.subOct = get (ID::subOct);     pp.subWave = get (ID::subWave);
     pp.noise = get (ID::noise);         pp.spread = get (ID::spread);
+    pp.grit = get (ID::grit);           pp.feedback = get (ID::feedback);
+    pp.oscSync = get (ID::oscSync);     pp.oscFM = get (ID::oscFM);
     pp.fltType = get (ID::fltType);     pp.cutoff = get (ID::cutoff);     pp.res = get (ID::res);
     pp.fltDrive = get (ID::fltDrive);   pp.fltEnv = get (ID::fltEnv);     pp.fltKey = get (ID::fltKey);
     pp.fltVel = get (ID::fltVel);       pp.fltLfo = get (ID::fltLfo);
@@ -53,6 +55,7 @@ void Midnight84AudioProcessor::cacheParameterPointers()
     pp.dlyMix = get (ID::dlyMix);
     pp.revSize = get (ID::revSize);     pp.revDamp = get (ID::revDamp);   pp.revMix = get (ID::revMix);
     pp.pumpRate = get (ID::pumpRate);   pp.pumpAmt = get (ID::pumpAmt);   pp.master = get (ID::master);
+    pp.hq = get (ID::hq);
 }
 
 EngineParams Midnight84AudioProcessor::readEngineParams() const
@@ -77,6 +80,8 @@ EngineParams Midnight84AudioProcessor::readEngineParams() const
 
     p.subLevel = f (pp.subLevel); p.subOct = i (pp.subOct); p.subWave = i (pp.subWave);
     p.noise = f (pp.noise); p.spread = f (pp.spread);
+    p.grit = f (pp.grit); p.feedback = f (pp.feedback);
+    p.oscSync = f (pp.oscSync) > 0.5f; p.oscFM = f (pp.oscFM);
     p.fltType = i (pp.fltType); p.cutoff = f (pp.cutoff); p.res = f (pp.res); p.fltDrive = f (pp.fltDrive);
     p.fltEnv = f (pp.fltEnv); p.fltKey = f (pp.fltKey); p.fltVel = f (pp.fltVel); p.fltLfo = f (pp.fltLfo);
     p.fA = f (pp.fA); p.fD = f (pp.fD); p.fS = f (pp.fS); p.fR = f (pp.fR);
@@ -141,6 +146,7 @@ void Midnight84AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         lastVoiceMode = params.voiceMode;
     }
 
+    engine.setHighQuality (pp.hq->load (std::memory_order_relaxed) > 0.5f);
     engine.setParams (params);
     engine.setTransport (t.bpm, t.ppq, t.playing);
     engine.process (buffer, midi);

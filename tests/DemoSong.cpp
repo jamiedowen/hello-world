@@ -1,6 +1,6 @@
 // Renders a short demo track using the real plugin engine: eight 4-bar sections of
 // dark bass lines (plus pads / arps / leads and a simple synthesized drum kit for context).
-// Usage: Midnight84DemoSong <outputDir> [lead]
+// Usage: Midnight84DemoSong <outputDir> [lead | riff "Preset A,Preset B" | probe]
 // Default writes demo_full.wav and demo_bass_only.wav; "lead" writes lead_with_band.wav and lead_solo.wav.
 #include <juce_audio_formats/juce_audio_formats.h>
 #include "../Source/PluginProcessor.h"
@@ -25,6 +25,7 @@ struct Layer
     float gain = 1.0f;
     bool inStem = false;                          // also rendered into the isolated stem file
     std::vector<std::pair<double, float>> bends;  // (beat, -1..1) pitch-wheel moves
+    std::vector<std::pair<juce::String, float>> overrides; // parameter values applied after the preset
 };
 
 enum class Drums { none, fourFloor, halftime };
@@ -111,6 +112,9 @@ void renderLayer (const Layer& layer, int64_t startSample, int lengthSamples, ju
     proc.setPlayHead (&transport);
     proc.setPlayConfigDetails (0, 2, sr, block);
     proc.setCurrentProgram (presetIndex (layer.preset));
+    for (const auto& [id, v] : layer.overrides)
+        if (auto* prm = proc.apvts.getParameter (id))
+            prm->setValueNotifyingHost (prm->convertTo0to1 (v));
     proc.prepareToPlay (sr, block);
 
     juce::AudioBuffer<float> buf (2, block);
@@ -315,6 +319,30 @@ std::vector<Section> buildLeadSong()
     return { { { lead, bass, pad }, Drums::fourFloor, 8 } };
 }
 
+
+// Heavy-riff comparison: the same dark F-minor chug through each preset, with drums.
+std::vector<Section> buildRiffSong (const juce::StringArray& presets)
+{
+    std::vector<Section> song;
+    const std::vector<int> chug { 0, R, 0, 0, 12, 0, 0, R, 0, 0, 12, 0, 3, R, 1, 0 };
+    for (const auto& name : presets)
+        song.push_back ({ { { name, stepLine ({ 41, 41, 37, 36 }, chug, 0.72), 1.0f, true, {}, {} } }, Drums::fourFloor, 4 });
+    return song;
+}
+
+// Aliasing probe: a single bright, heavily driven saw note (A5) with no drift or unison.
+// Extra "id=value,id=value" overrides can be passed to vary the probe.
+std::vector<Section> buildProbe (const juce::String& extra)
+{
+    Layer l { "Init", { { 0.0, 7.0, 81, 1.0f } }, 1.0f, true, {},
+              { { "analog", 0.0f }, { "cutoff", 20000.0f }, { "res", 0.3f }, { "fltDrive", 1.0f },
+                { "fltKey", 0.0f }, { "drvType", 1 }, { "drvAmt", 0.6f } } };
+    for (const auto& kv : juce::StringArray::fromTokens (extra, ",", ""))
+        if (kv.contains ("="))
+            l.overrides.push_back ({ kv.upToFirstOccurrenceOf ("=", false, false), kv.fromFirstOccurrenceOf ("=", false, false).getFloatValue() });
+    return { { { l }, Drums::none, 2 } };
+}
+
 void writeWav (const juce::File& file, juce::AudioBuffer<float> buffer)
 {
     // Gentle soft-clip then normalise to -1 dBFS.
@@ -344,8 +372,11 @@ int main (int argc, char* argv[])
     const juce::File outDir (argc > 1 ? juce::String (argv[1]) : juce::File::getCurrentWorkingDirectory().getFullPathName());
     outDir.createDirectory();
 
-    const bool leadMode = argc > 2 && juce::String (argv[2]) == "lead";
-    const auto song = leadMode ? buildLeadSong() : buildSong();
+    const juce::String mode = argc > 2 ? juce::String (argv[2]) : juce::String();
+    const bool leadMode = mode == "lead";
+    const auto song = mode == "riff"  ? buildRiffSong (juce::StringArray::fromTokens (argc > 3 ? argv[3] : "Brut Force,Turbo Slayer,Perturbed Bass", ",", ""))
+                    : mode == "probe" ? buildProbe (argc > 3 ? juce::String (argv[3]) : juce::String())
+                    : leadMode        ? buildLeadSong() : buildSong();
     const int tail = (int) (3.0 * sr);
     int total = tail;
     for (const auto& sec : song)
@@ -371,8 +402,22 @@ int main (int argc, char* argv[])
         start += sectionLen;
     }
 
-    writeWav (outDir.getChildFile (leadMode ? "lead_with_band.wav" : "demo_full.wav"), full);
-    writeWav (outDir.getChildFile (leadMode ? "lead_solo.wav" : "demo_bass_only.wav"), stem);
+    if (mode == "probe")
+    {
+        stem.applyGain (0.5f / std::max (stem.getMagnitude (0, stem.getNumSamples()), 1.0e-6f));
+        juce::WavAudioFormat wav;
+        auto f = outDir.getChildFile ("probe.wav");
+        f.deleteFile();
+        auto stream = std::unique_ptr<juce::OutputStream> (f.createOutputStream());
+        if (auto w = std::unique_ptr<juce::AudioFormatWriter> (wav.createWriterFor (stream.get(), sr, 2, 24, {}, 0)))
+        {
+            stream.release();
+            w->writeFromAudioSampleBuffer (stem, 0, stem.getNumSamples());
+        }
+        return 0;
+    }
+    writeWav (outDir.getChildFile (mode == "riff" ? "riff_full.wav" : leadMode ? "lead_with_band.wav" : "demo_full.wav"), full);
+    writeWav (outDir.getChildFile (mode == "riff" ? "riff_bass.wav" : leadMode ? "lead_solo.wav" : "demo_bass_only.wav"), stem);
     std::printf ("done: %.1f s\n", total / sr);
     return 0;
 }

@@ -14,6 +14,10 @@ namespace ID
     inline constexpr const char* subWave    = "subWave";
     inline constexpr const char* noise      = "noise";
     inline constexpr const char* spread     = "spread";
+    inline constexpr const char* grit       = "grit";
+    inline constexpr const char* feedback   = "feedback";
+    inline constexpr const char* oscSync    = "osc2Sync";
+    inline constexpr const char* oscFM      = "osc2FM";
 
     inline constexpr const char* fltType    = "fltType";
     inline constexpr const char* cutoff     = "cutoff";
@@ -70,6 +74,7 @@ namespace ID
     inline constexpr const char* pumpAmt    = "pumpAmt";
 
     inline constexpr const char* master     = "master";
+    inline constexpr const char* hq         = "hq";
 }
 
 constexpr int kNumOscs = 3;

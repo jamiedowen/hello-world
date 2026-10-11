@@ -36,6 +36,44 @@ inline float polyBlep (float t, float dt) noexcept
     return 0.0f;
 }
 
+// Asymmetric soft clip: even harmonics, like an overdriven op-amp / transistor stage.
+inline float asymSat (float x, float bias) noexcept
+{
+    return fastTanh (x + bias) - fastTanh (bias);
+}
+
+// Topology-preserving state-variable filter (Simper / Zavalishin).
+struct Svf
+{
+    float ic1 = 0, ic2 = 0;
+    float a1 = 0, a2 = 0, a3 = 0, k = 1.4f;
+
+    void set (float fc, float q, float sampleRate) noexcept
+    {
+        const float g = std::tan (kPi * std::min (fc, sampleRate * 0.49f) / sampleRate);
+        k = 1.0f / q;
+        a1 = 1.0f / (1.0f + g * (g + k));
+        a2 = g * a1;
+        a3 = g * a2;
+    }
+
+    void reset() noexcept { ic1 = ic2 = 0.0f; }
+
+    inline void process (float v0, float& lp, float& bp, float& hp) noexcept
+    {
+        const float v3 = v0 - ic2;
+        const float v1 = a1 * ic1 + a2 * v3;
+        const float v2 = ic2 + a2 * ic1 + a3 * v3;
+        ic1 = 2.0f * v1 - ic1;
+        ic2 = 2.0f * v2 - ic2;
+        lp = v2;
+        bp = v1;
+        hp = v0 - k * v1 - v2;
+    }
+
+    inline float lowpass (float v0) noexcept { float l, b, h; process (v0, l, b, h); return l; }
+};
+
 enum OscWave { waveSine = 0, waveTriangle, waveSaw, waveSquare };
 
 struct Oscillator
@@ -62,9 +100,23 @@ struct Oscillator
         }
 
         phase += dt;
-        if (phase >= 1.0f) phase -= 1.0f;
+        wrapFrac = -1.0f;
+        if (phase >= 1.0f)
+        {
+            phase -= 1.0f;
+            wrapFrac = dt > 0.0f ? phase / dt : 0.0f; // how far past the wrap we are, in samples
+        }
         return y;
     }
+
+    // Hard sync: restart this oscillator where the master wrapped.
+    inline void syncTo (const Oscillator& master, float dt) noexcept
+    {
+        if (master.wrapFrac >= 0.0f)
+            phase = master.wrapFrac * dt;
+    }
+
+    float wrapFrac = -1.0f;
 };
 
 struct Noise
@@ -100,10 +152,11 @@ struct LadderFilter
         const float y4est = (G4 * in + sigma) / (1.0f + k * G4);
         const float u = fastTanh (in - k * y4est);
 
-        float v = (u - s[0]) * G;  const float y1 = v + s[0];  s[0] = y1 + v;
-        v = (y1 - s[1]) * G;       const float y2 = v + s[1];  s[1] = y2 + v;
-        v = (y2 - s[2]) * G;       const float y3 = v + s[2];  s[2] = y3 + v;
-        v = (y3 - s[3]) * G;       const float y4 = v + s[3];  s[3] = y4 + v;
+        // Each transistor stage saturates too, which is where the ladder's growl comes from.
+        float v = (u - s[0]) * G;              const float y1 = v + s[0];  s[0] = y1 + v;
+        v = (fastTanh (y1) - s[1]) * G;        const float y2 = v + s[1];  s[1] = y2 + v;
+        v = (fastTanh (y2) - s[2]) * G;        const float y3 = v + s[2];  s[2] = y3 + v;
+        v = (fastTanh (y3) - s[3]) * G;        const float y4 = v + s[3];  s[3] = y4 + v;
 
         float out;
         switch (mode)

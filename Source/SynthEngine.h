@@ -1,6 +1,7 @@
 #pragma once
 
 #include <juce_audio_basics/juce_audio_basics.h>
+#include <juce_dsp/juce_dsp.h>
 #include <array>
 #include <vector>
 #include "DSP.h"
@@ -21,6 +22,8 @@ struct EngineParams
     std::array<OscParams, kNumOscs> osc;
     float subLevel = 0; int subOct = 0; int subWave = 0;
     float noise = 0, spread = 0.6f;
+    float grit = 0, feedback = 0;      // mixer overdrive and filter-to-mixer feedback
+    bool oscSync = false; float oscFM = 0; // osc B hard-synced to / frequency-modulated by osc A
 
     int fltType = 0;
     float cutoff = 8000, res = 0, fltDrive = 0, fltEnv = 0, fltKey = 0, fltVel = 0, fltLfo = 0;
@@ -61,6 +64,7 @@ private:
     Oscillator sub;
     Noise noise;
     LadderFilter filterL, filterR;
+    float prevOut[2] {}, fbLow[2] {}; // mixer feedback path (DC-blocked)
     Envelope ampEnv, filtEnv;
 
     float currentNote = 60.0f, targetNote = 60.0f, glideCoef = 0.0f;
@@ -86,6 +90,9 @@ public:
     void process (juce::AudioBuffer<float>& buffer, const juce::MidiBuffer& midi);
     void allNotesOff();
 
+    // Switches between 2x and 4x internal oversampling (stops any sounding notes).
+    void setHighQuality (bool high);
+
 private:
     void handleMidi (const juce::MidiMessage& m);
     void noteOn (int note, float velocity);
@@ -100,7 +107,14 @@ private:
     static constexpr int kChunk = 128;
     std::array<float, kChunk> lfoBuffer {};
 
-    double sr = 44100.0;
+    // Voices run at 2x (or 4x in high quality) the host rate so saturation doesn't alias.
+    juce::dsp::Oversampling<float> os2x { 2, 1, juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR, true, false };
+    juce::dsp::Oversampling<float> os4x { 2, 2, juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR, true, false };
+    int osFactor = 2;
+    int maxBlock = 512;
+    double hostRate = 44100.0;
+
+    double sr = 44100.0; // internal (oversampled) rate
     double bpm = 120.0, ppq = 0.0;
     bool playing = false;
     bool sustainPedal = false;

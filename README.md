@@ -8,6 +8,7 @@ Harmor / Sawer (drive, pumping, big detuned saws).
 ![Midnight 84](docs/screenshot.png)
 
 **Listen:** [**Neon Requiem** (full 3-minute track)](demo/midnight84_neon_requiem.mp3) ·
+[grit: before/after](demo/midnight84_grit_before_after.mp3) · [heavy presets](demo/midnight84_heavy_presets.mp3) ·
 [full demo](demo/midnight84_demo_full.mp3) · [bass lines only](demo/midnight84_demo_bass_only.mp3) ·
 [Crimson Overdrive lead solo](demo/midnight84_lead_solo.mp3) · [lead with band](demo/midnight84_lead_with_band.mp3)
 (rendered offline from the plugin itself with `tests/DemoSong.cpp`; the drums in the full mix are simple synthesized placeholders)
@@ -16,23 +17,31 @@ Harmor / Sawer (drive, pumping, big detuned saws).
 
 - **3 oscillators**: sine / triangle / saw / square, with octave, semitone, fine tune, pulse width,
   level, and up to **7-voice unison** with detune and stereo spread. All are band-limited (PolyBLEP).
+  **Osc B can be hard-synced to Osc A and frequency-modulated by it**, for snarling, metallic teeth.
+- **Analog-style mixer**: **Grit** overdrives the mixer through an asymmetric stage (even harmonics, like
+  cranking a Minimoog / Poly D mixer). **Feedback** routes the filter output back into the mixer, the classic
+  Minimoog "patch the headphone out into the external input" trick, for growl and compression.
+- **Oversampled voice engine**: voices run at 2x the host rate (4x with **HQ** on), so the saturation
+  produces harmonics rather than digital aliasing fizz.
 - **Sub oscillator** (sine or square, -1 or -2 octaves) and a **noise** source.
 - **4-pole transistor ladder filter** (zero-delay-feedback, Moog / Poly D style) with LP24, LP12, BP and HP24
-  modes. It has resonance up to self-oscillation, input drive, envelope amount (bipolar), key tracking,
-  velocity and LFO modulation.
+  modes. **Every stage saturates**, like the real circuit. It has resonance up to self-oscillation, up to
+  +30 dB of input drive, envelope amount (bipolar), key tracking, velocity and LFO modulation.
 - **Filter and amp envelopes** with analog-style exponential curves, shown as hardware-style faders.
 - **LFO**: six shapes (including S&H). It can run free or sync to tempo (4 bars down to 1/32, including triplets),
   with optional retrigger. It modulates cutoff, pitch (vibrato) and pulse width.
 - **Voice modes**: Poly (up to 16 voices), Mono, Legato. Glide, pitch-bend range, and **Analog drift**,
   which adds per-voice pitch and cutoff wander for that vintage instability.
 - **FX chain**:
-  - **Drive** (2x oversampled): Tube, Hard clip, Wavefolder and Bitcrush, with tone and mix
+  - **Drive** (2x oversampled): Tube, Hard clip, Wavefolder, Bitcrush, plus two multiband modes built for
+    heavy bass, **Grind** and **Amp**. These split at 140 Hz, keep the sub clean and mono, distort the mids
+    hard and roll off the fizz like a speaker cabinet (Tone sets the cabinet's brightness).
   - **Chorus**: Juno-ish width
   - **Delay**: tempo-synced ping-pong with a darkening filter in the feedback path
   - **Reverb**
   - **Pump**: tempo-synced sidechain-style ducking, for that pumping darksynth groove
 - **Mod wheel** adds vibrato and filter wobble. The **sustain pedal** is supported.
-- **16 factory presets**, also exposed as host programs, so they show up in FL Studio's preset menu.
+- **20 factory presets**, also exposed as host programs, so they show up in FL Studio's preset menu.
   You can **save and load** your own sounds as `.m84` files (stored by default in `Documents/Midnight 84/Presets`).
 - **Resizable UI** that keeps its aspect ratio (drag the bottom-right corner).
 
@@ -40,7 +49,11 @@ Harmor / Sawer (drive, pumping, big detuned saws).
 
 | Preset | Character |
 | --- | --- |
-| Perturbed Bass | Detuned saws + sub through a plucky ladder filter, tube drive, mono glide |
+| Iron Teeth | Gritty Carpenter Brut-style chug: overdriven mixer, feedback, Grind distortion |
+| Gutter Grinder | Industrial snarl: synced + FM'd Osc B, heavy mixer feedback, Amp distortion |
+| Doom Engine | Slow, massive and dark, with lots of feedback growl and a dark Grind tone |
+| Chainsaw | Buzzing PWM square into a synced saw, mid-forward and nasty |
+| Perturbed Bass | Detuned saws + sub through a plucky ladder filter, Grind drive, mono glide |
 | Brut Force | 5-voice unison saw + square sub, hard-clipped, pumping on the quarter note |
 | Dark Reese | Detuned saw reese with a slow filter LFO and wavefolder grit, legato |
 | Turbo Slayer | PWM square + saw, heavy filter drive and hard clip, hard pump |
@@ -105,6 +118,9 @@ run `xattr -dr com.apple.quarantine "~/Library/Audio/Plug-Ins/VST3/Midnight 84.v
   Hard or Fold at 40–70% gets you into Carpenter Brut territory.
 - **Pump** set to 1/4 at 50–70% fakes the kick sidechain that is all over the genre.
 - In **Mono** or **Legato** mode, use a little **Glide** (20–60 ms) for slides between overlapping notes.
+- For grit and teeth, use **Grit** and **Feedback** in the mixer first (analog-style dirt that the filter then
+  shapes), then **Grind** or **Amp** in the Drive section (aggressive mids, clean sub).
+- Turn on **HQ 4x** when bouncing or for high, heavily driven leads. It roughly doubles CPU.
 
 ## Controls
 

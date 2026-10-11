@@ -18,6 +18,17 @@ void Drive::reset()
     toneState[0] = toneState[1] = 0.0f;
     crushHold[0] = crushHold[1] = 0.0f;
     crushCounter[0] = crushCounter[1] = 0;
+    for (int ch = 0; ch < 2; ++ch)
+    {
+        lowA[ch].reset();
+        lowB[ch].reset();
+        highA[ch].reset();
+        highB[ch].reset();
+        midBoost[ch].reset();
+        cabLowCut[ch].reset();
+        cabA[ch].reset();
+        cabB[ch].reset();
+    }
 }
 
 void Drive::process (juce::AudioBuffer<float>& buffer, const FxParams& p)
@@ -30,7 +41,8 @@ void Drive::process (juce::AudioBuffer<float>& buffer, const FxParams& p)
     const float gain = juce::Decibels::decibelsToGain (p.drvAmt * 36.0f);
     const float comp = 1.0f / (1.0f + p.drvAmt * 2.0f);
     const float toneHz = 200.0f * std::exp2 (p.drvTone * 6.6f);
-    const float toneA = 1.0f - std::exp (-kTwoPi * toneHz / (float) sr);
+    const bool multiband = p.drvType >= 4;
+    const float toneA = multiband ? 1.0f : 1.0f - std::exp (-kTwoPi * toneHz / (float) sr);
 
     // Crusher settings (applied at the oversampled rate).
     const float steps = std::exp2 (12.0f - p.drvAmt * 9.0f);
@@ -48,6 +60,9 @@ void Drive::process (juce::AudioBuffer<float>& buffer, const FxParams& p)
         auto block = whole.getSubBlock ((size_t) offset, (size_t) n);
         auto up = oversampler.processSamplesUp (block);
 
+        if (multiband)
+            processMultiband (up, p, gain);
+        else
         for (size_t ch = 0; ch < up.getNumChannels(); ++ch)
         {
             float* d = up.getChannelPointer (ch);
@@ -87,6 +102,73 @@ void Drive::process (juce::AudioBuffer<float>& buffer, const FxParams& p)
                 st += (w[i] - st) * toneA;
                 w[i] = dr[i] + (st - dr[i]) * p.drvMix;
             }
+        }
+    }
+}
+
+
+void Drive::processMultiband (juce::dsp::AudioBlock<float>& up, const FxParams& p, float gain)
+{
+    const float osr = (float) sr * 2.0f;
+    const bool grind = p.drvType == 4;
+    const float cabHz = (grind ? 1500.0f : 1100.0f) * std::exp2 (p.drvTone * 2.6f);
+    const int channels = (int) up.getNumChannels();
+
+    for (int ch = 0; ch < channels; ++ch)
+    {
+        for (auto* f : { &lowA[ch], &lowB[ch], &highA[ch], &highB[ch] })
+            f->set (140.0f, 0.7071f, osr);
+        midBoost[ch].set (grind ? 950.0f : 650.0f, 0.9f, osr);
+        cabA[ch].set (cabHz, 0.9f, osr);
+        cabB[ch].set (cabHz * 1.15f, 0.6f, osr);
+        cabLowCut[ch].set (110.0f, 0.7071f, osr);
+    }
+
+    // Drive into the top band is heavier than the full-band modes: it's all teeth.
+    const float topGain = gain * 1.6f;
+    const float topOut = grind ? 0.42f : 0.5f;
+
+    for (size_t i = 0; i < up.getNumSamples(); ++i)
+    {
+        float low[2] {}, high[2] {};
+        for (int ch = 0; ch < channels; ++ch)
+        {
+            const float x = up.getSample (ch, (int) i);
+            low[ch] = lowB[ch].lowpass (lowA[ch].lowpass (x));
+            float l, b, h;
+            highA[ch].process (x, l, b, h);
+            highB[ch].process (h, l, b, high[ch]);
+        }
+
+        // Sub: summed to mono and only gently saturated, so it stays tight and heavy.
+        const float sub = channels > 1 ? 0.5f * (low[0] + low[1]) : low[0];
+        const float subOut = fastTanh (sub * 1.5f) / 1.5f * 1.3f;
+
+        for (int ch = 0; ch < channels; ++ch)
+        {
+            float lp, bp, hp;
+            midBoost[ch].process (high[ch], lp, bp, hp);
+            float y;
+            if (grind)
+            {
+                // Mid-forward pre-boost -> asymmetric overdrive -> hard clip.
+                y = asymSat ((high[ch] + 1.5f * bp) * topGain, 0.2f);
+                y = std::clamp (y * 1.8f, -1.0f, 1.0f);
+            }
+            else
+            {
+                // Two cascaded tube-ish stages with opposite bias, like a cranked amp.
+                y = asymSat ((high[ch] + 0.8f * bp) * topGain, 0.3f);
+                y = fastTanh (y * 3.0f - 0.15f) + fastTanh (0.15f);
+            }
+            y = cabB[ch].lowpass (cabA[ch].lowpass (y)); // 24 dB/oct "speaker" roll-off
+            {
+                // Low cut: drop the rumble that clipping detuned voices creates, keeping the sub mono.
+                float l, b, h;
+                cabLowCut[ch].process (y, l, b, h);
+                y = h;
+            }
+            up.setSample (ch, (int) i, subOut + y * topOut);
         }
     }
 }

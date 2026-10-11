@@ -30,6 +30,7 @@ MainContent::MainContent (Midnight84AudioProcessor& p)
     // Header ---------------------------------------------------------------
     addAndMakeVisible (presetBar);
     presetBar.setBounds (480, 33, 380, 34);
+    toggle (ID::hq, "HQ 4x", Palette::cyan, { 480, 73, 84, 20 });
     addAndMakeVisible (scope);
     scope.setBounds (878, 14, 206, 72);
     knob (ID::master, "Master", Palette::pink, { 1098, 12, 84, 82 });
@@ -43,9 +44,21 @@ MainContent::MainContent (Midnight84AudioProcessor& p)
         const auto r = panel (12 + i * 300, 110, 292, 190, oscTitles[i], c);
         const int x = r.getX(), y = r.getY();
 
-        selector (ID::oscId (i, "Wave"), {}, c, { x + 10, y + 32, 146, 62 }, ChoiceSelector::Display::oscWave);
-        knob (ID::oscId (i, "Level"), "Level", c, { x + 162, y + 28, 60, 70 });
-        knob (ID::oscId (i, "PW"), "PW", c, { x + 224, y + 28, 60, 70 });
+        if (i == 1)
+        {
+            // Osc B can be hard-synced to, and frequency-modulated by, osc A.
+            selector (ID::oscId (i, "Wave"), {}, c, { x + 10, y + 30, 102, 44 }, ChoiceSelector::Display::oscWave);
+            toggle (ID::oscSync, "Sync A", c, { x + 10, y + 78, 102, 20 });
+            knob (ID::oscFM, "FM", c, { x + 114, y + 28, 52, 70 });
+            knob (ID::oscId (i, "Level"), "Level", c, { x + 166, y + 28, 58, 70 });
+            knob (ID::oscId (i, "PW"), "PW", c, { x + 226, y + 28, 58, 70 });
+        }
+        else
+        {
+            selector (ID::oscId (i, "Wave"), {}, c, { x + 10, y + 32, 146, 62 }, ChoiceSelector::Display::oscWave);
+            knob (ID::oscId (i, "Level"), "Level", c, { x + 162, y + 28, 60, 70 });
+            knob (ID::oscId (i, "PW"), "PW", c, { x + 224, y + 28, 60, 70 });
+        }
 
         const char* ids[] = { "Oct", "Semi", "Fine", "Unison", "Detune" };
         const char* labels[] = { "Oct", "Semi", "Fine", "Unison", "Detune" };
@@ -54,13 +67,14 @@ MainContent::MainContent (Midnight84AudioProcessor& p)
     }
 
     {
-        const auto r = panel (912, 110, 276, 190, "SUB / NOISE", cSub);
+        const auto r = panel (912, 110, 276, 190, "SUB / MIXER", cSub);
         const int x = r.getX(), y = r.getY();
         selector (ID::subWave, "Sub Wave", cSub, { x + 10, y + 30, 122, 44 });
         selector (ID::subOct, "Sub Octave", cSub, { x + 144, y + 30, 122, 44 });
-        knob (ID::subLevel, "Sub", cSub, { x + 10, y + 90, 80, 88 });
-        knob (ID::noise, "Noise", cSub, { x + 98, y + 90, 80, 88 });
-        knob (ID::spread, "Spread", cSub, { x + 186, y + 90, 80, 88 });
+        const char* ids[] = { ID::subLevel, ID::noise, ID::spread, ID::grit, ID::feedback };
+        const char* labels[] = { "Sub", "Noise", "Spread", "Grit", "Feedbk" };
+        for (int k = 0; k < 5; ++k)
+            knob (ids[k], labels[k], k >= 3 ? Palette::red : cSub, { x + 5 + k * 53, y + 98, 54, 80 });
     }
 
     // Row 2: filter, envelopes, LFO ---------------------------------------------

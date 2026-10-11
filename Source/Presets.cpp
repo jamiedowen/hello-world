@@ -3,7 +3,7 @@
 namespace m84
 {
 // Oscillator waves: 0 Sine, 1 Triangle, 2 Saw, 3 Square.
-// Filter types: 0 LP24, 1 LP12, 2 BP, 3 HP24. Drive: 0 Tube, 1 Hard, 2 Fold, 3 Crush.
+// Filter types: 0 LP24, 1 LP12, 2 BP, 3 HP24. Drive: 0 Tube, 1 Hard, 2 Fold, 3 Crush, 4 Grind, 5 Amp.
 // Voice mode: 0 Poly, 1 Mono, 2 Legato.
 const std::vector<Preset>& factoryPresets()
 {
@@ -18,7 +18,8 @@ const std::vector<Preset>& factoryPresets()
             { "cutoff", 180 }, { "res", 0.35f }, { "fltDrive", 0.5f }, { "fltEnv", 0.55f }, { "fltKey", 0.4f },
             { "fA", 0.0f }, { "fD", 0.25f }, { "fS", 0.15f }, { "fR", 0.15f },
             { "aA", 0.001f }, { "aD", 0.5f }, { "aS", 0.9f }, { "aR", 0.12f },
-            { "drvType", 0 }, { "drvAmt", 0.35f }, { "drvTone", 0.6f },
+            { "grit", 0.3f }, { "feedback", 0.2f },
+            { "drvType", 4 }, { "drvAmt", 0.45f }, { "drvTone", 0.55f },
             { "voiceMode", 1 }, { "glide", 0.03f }, { "analog", 0.4f } } },
 
         { "Brut Force", {
@@ -28,7 +29,8 @@ const std::vector<Preset>& factoryPresets()
             { "cutoff", 260 }, { "res", 0.25f }, { "fltDrive", 0.6f }, { "fltEnv", 0.6f }, { "fltKey", 0.4f },
             { "fD", 0.18f }, { "fS", 0.25f }, { "fR", 0.1f },
             { "aA", 0.001f }, { "aS", 1.0f }, { "aR", 0.1f },
-            { "drvType", 1 }, { "drvAmt", 0.55f }, { "drvTone", 0.55f },
+            { "grit", 0.45f }, { "feedback", 0.25f },
+            { "drvType", 4 }, { "drvAmt", 0.55f }, { "drvTone", 0.55f },
             { "pumpRate", 1 }, { "pumpAmt", 0.5f },
             { "voiceMode", 1 }, { "glide", 0.02f } } },
 
@@ -60,7 +62,8 @@ const std::vector<Preset>& factoryPresets()
             { "fD", 0.2f }, { "fS", 0.3f },
             { "lfoPW", 0.3f }, { "lfoRate", 0.8f },
             { "aA", 0.001f }, { "aS", 1.0f }, { "aR", 0.08f },
-            { "drvType", 1 }, { "drvAmt", 0.7f }, { "drvTone", 0.5f },
+            { "grit", 0.5f }, { "feedback", 0.3f },
+            { "drvType", 5 }, { "drvAmt", 0.6f }, { "drvTone", 0.5f },
             { "pumpRate", 1 }, { "pumpAmt", 0.7f },
             { "voiceMode", 1 } } },
 
@@ -99,6 +102,7 @@ const std::vector<Preset>& factoryPresets()
             { "cutoff", 220 }, { "res", 0.55f }, { "fltDrive", 0.6f }, { "fltEnv", 0.45f },
             { "fD", 0.35f }, { "fS", 0.2f }, { "fR", 0.2f },
             { "aA", 0.002f }, { "aS", 1.0f }, { "aR", 0.15f },
+            { "grit", 0.25f }, { "feedback", 0.45f },
             { "voiceMode", 2 }, { "glide", 0.05f }, { "analog", 0.5f } } },
 
         { "Sub Doom", {
@@ -156,6 +160,52 @@ const std::vector<Preset>& factoryPresets()
             { "revMix", 0.3f }, { "revSize", 0.82f }, { "revDamp", 0.4f },
             { "voiceMode", 2 }, { "glide", 0.055f }, { "bendRange", 2 }, { "analog", 0.35f },
             { "master", -7.0f } } },
+
+        { "Iron Teeth", {
+            { "osc1Wave", 2 }, { "osc1Level", 0.8f },
+            { "osc2Wave", 3 }, { "osc2Level", 0.6f }, { "osc2Fine", 9 }, { "osc2PW", 0.42f },
+            { "osc3Wave", 2 }, { "osc3Level", 0.5f }, { "osc3Oct", -1 },
+            { "grit", 0.55f }, { "feedback", 0.35f },
+            { "cutoff", 320 }, { "res", 0.3f }, { "fltDrive", 0.55f }, { "fltEnv", 0.5f }, { "fltKey", 0.4f },
+            { "fD", 0.22f }, { "fS", 0.3f }, { "fR", 0.12f },
+            { "aA", 0.001f }, { "aS", 1.0f }, { "aR", 0.1f },
+            { "drvType", 4 }, { "drvAmt", 0.55f }, { "drvTone", 0.65f },
+            { "voiceMode", 1 }, { "glide", 0.02f }, { "analog", 0.45f } } },
+
+        { "Gutter Grinder", {
+            { "osc1Wave", 2 }, { "osc1Level", 0.7f }, { "osc1Unison", 3 }, { "osc1Detune", 0.2f },
+            { "osc2Wave", 2 }, { "osc2Level", 0.55f }, { "osc2Oct", 1 }, { "osc2Semi", 5 },
+            { "osc2Sync", 1 }, { "osc2FM", 0.25f },
+            { "subLevel", 0.5f },
+            { "grit", 0.7f }, { "feedback", 0.5f },
+            { "cutoff", 600 }, { "res", 0.35f }, { "fltDrive", 0.5f }, { "fltEnv", 0.35f }, { "fltKey", 0.3f },
+            { "fD", 0.3f }, { "fS", 0.5f },
+            { "aA", 0.001f }, { "aS", 1.0f }, { "aR", 0.12f },
+            { "drvType", 5 }, { "drvAmt", 0.6f }, { "drvTone", 0.5f },
+            { "voiceMode", 1 }, { "glide", 0.015f }, { "analog", 0.4f } } },
+
+        { "Doom Engine", {
+            { "osc1Wave", 2 }, { "osc1Level", 0.8f },
+            { "osc2Wave", 3 }, { "osc2Level", 0.6f }, { "osc2Oct", -1 }, { "osc2Fine", -6 },
+            { "subLevel", 0.7f },
+            { "grit", 0.4f }, { "feedback", 0.6f },
+            { "cutoff", 150 }, { "res", 0.45f }, { "fltDrive", 0.6f }, { "fltEnv", 0.3f }, { "fltKey", 0.3f },
+            { "fD", 0.6f }, { "fS", 0.4f }, { "fR", 0.3f },
+            { "aA", 0.004f }, { "aS", 1.0f }, { "aR", 0.25f },
+            { "drvType", 4 }, { "drvAmt", 0.45f }, { "drvTone", 0.5f },
+            { "voiceMode", 2 }, { "glide", 0.08f }, { "analog", 0.5f } } },
+
+        { "Chainsaw", {
+            { "osc1Wave", 3 }, { "osc1Level", 0.6f }, { "osc1PW", 0.2f },
+            { "osc2Wave", 2 }, { "osc2Level", 0.7f }, { "osc2Oct", 1 }, { "osc2Sync", 1 },
+            { "subLevel", 0.45f }, { "subWave", 1 },
+            { "grit", 0.5f }, { "feedback", 0.2f },
+            { "cutoff", 1800 }, { "res", 0.2f }, { "fltDrive", 0.5f }, { "fltEnv", 0.25f },
+            { "fD", 0.25f }, { "fS", 0.6f },
+            { "lfoWave", 1 }, { "lfoRate", 6.0f }, { "lfoPW", 0.4f },
+            { "aA", 0.001f }, { "aS", 1.0f }, { "aR", 0.1f },
+            { "drvType", 4 }, { "drvAmt", 0.6f }, { "drvTone", 0.6f },
+            { "voiceMode", 1 } } },
     };
     return presets;
 }

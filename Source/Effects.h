@@ -34,9 +34,15 @@ private:
     juce::dsp::Oversampling<float> oversampler { 2, 1, juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR, true, false };
     juce::AudioBuffer<float> dry;
     double sr = 44100.0;
+    // Grind / Amp: split at ~140 Hz, keep the sub clean and mono, distort the rest,
+    // then roll it off like a speaker cabinet.
+    void processMultiband (juce::dsp::AudioBlock<float>& up, const FxParams& p, float gain);
+
     float toneState[2] {};
     float crushHold[2] {};
     int crushCounter[2] {};
+    Svf lowA[2], lowB[2], highA[2], highB[2]; // Linkwitz-Riley 4th-order crossover
+    Svf midBoost[2], cabA[2], cabB[2], cabLowCut[2];
 };
 
 // Tempo-synced ping-pong delay with a darkening filter in the feedback path.

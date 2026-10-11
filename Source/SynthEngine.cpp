@@ -40,6 +40,7 @@ void Voice::start (int newNote, float vel, bool retrigger, bool glide, const Eng
             cutoffOffset = rng.nextFloat() * 2.0f - 1.0f;
             filterL.reset();
             filterR.reset();
+            prevOut[0] = prevOut[1] = fbLow[0] = fbLow[1] = 0.0f;
         }
 
         ampEnv.noteOn();
@@ -86,23 +87,26 @@ void Voice::render (float* outL, float* outR, int num, const EngineParams& p,
 
     struct OscRender
     {
-        bool on = false;
+        bool on = false;  // processed this block
+        bool heard = false; // contributes to the mix (osc A can run silently as a sync / FM source)
         int n = 1;
         float ratio[kMaxUnison], gainL[kMaxUnison], gainR[kMaxUnison];
     };
     OscRender ro[kNumOscs];
+    const bool modulatesB = (p.oscSync || p.oscFM > 0.0001f) && p.osc[1].level > 0.0001f;
 
     for (int o = 0; o < kNumOscs; ++o)
     {
         const auto& op = p.osc[(size_t) o];
         auto& r = ro[o];
-        r.on = op.level > 0.0001f;
+        r.heard = op.level > 0.0001f;
+        r.on = r.heard || (o == 0 && modulatesB);
         if (! r.on) continue;
 
         r.n = std::clamp (op.unison, 1, kMaxUnison);
         const float base = op.octave * 12.0f + op.semi + op.fine * 0.01f + oscOffset[(size_t) o] * p.analog * 0.08f;
         const float detuneSemis = std::pow (op.detune, 1.5f) * 0.6f;
-        const float norm = op.level / std::sqrt ((float) r.n);
+        const float norm = r.heard ? op.level / std::sqrt ((float) r.n) : 0.0f;
 
         for (int u = 0; u < r.n; ++u)
         {
@@ -122,8 +126,14 @@ void Voice::render (float* outL, float* outR, int num, const EngineParams& p,
     const float velFilter = 1.0f - p.fltVel * (1.0f - velocity);
     const float ampGain = 1.0f - p.ampVel * (1.0f - velocity);
     const float k = p.res * 4.1f;
-    const float drive = 1.0f + p.fltDrive * 5.0f;
-    const float postGain = 1.0f / (1.0f + p.fltDrive * 1.8f);
+    const float drive = std::exp2 (p.fltDrive * 5.0f);              // up to +30 dB into the ladder
+    const float postGain = 1.0f / (1.0f + p.fltDrive * 2.5f);
+    const float fmIndex = p.oscFM * p.oscFM * 4.0f;
+    const float gritGain = std::exp2 (p.grit * 4.5f);               // mixer overdrive, up to ~+27 dB
+    const float gritBias = 0.35f * p.grit;                          // asymmetry -> even harmonics
+    const float gritOut = 1.0f / (1.0f + p.grit * 1.5f);
+    const float fbGain = p.feedback * 1.15f;
+    const float fbHpCoef = 1.0f - std::exp (-kTwoPi * 30.0f * (1.0f / sr));
     const float maxFc = sr * 0.45f;
     const float invSr = 1.0f / sr;
 
@@ -136,15 +146,28 @@ void Voice::render (float* outL, float* outR, int num, const EngineParams& p,
         const float baseDt = 440.0f * std::exp2 ((pitch - 69.0f) * (1.0f / 12.0f)) * invSr;
 
         float sL = 0.0f, sR = 0.0f;
+        float aOut[kMaxUnison] {};
         for (int o = 0; o < kNumOscs; ++o)
         {
             const auto& r = ro[o];
             if (! r.on) continue;
             const auto& op = p.osc[(size_t) o];
             const float pw = std::clamp (op.pw + l * p.lfoPW * 0.45f, 0.03f, 0.97f);
+            const bool isB = o == 1 && ro[0].on;
             for (int u = 0; u < r.n; ++u)
             {
-                const float s = oscs[(size_t) o][(size_t) u].process (op.wave, std::min (baseDt * r.ratio[u], 0.45f), pw);
+                auto& osc = oscs[(size_t) o][(size_t) u];
+                float dt = baseDt * r.ratio[u];
+                if (isB)
+                {
+                    const int m = u % ro[0].n;
+                    if (fmIndex > 0.0f)
+                        dt *= std::max (0.0f, 1.0f + fmIndex * aOut[m]);
+                    if (p.oscSync)
+                        osc.syncTo (oscs[0][(size_t) m], std::min (dt, 0.45f));
+                }
+                const float s = osc.process (op.wave, std::min (dt, 0.45f), pw);
+                if (o == 0) aOut[u] = s;
                 sL += s * r.gainL[u];
                 sR += s * r.gainR[u];
             }
@@ -174,9 +197,23 @@ void Voice::render (float* outL, float* outR, int num, const EngineParams& p,
         const float g = std::tan (kPi * fc * invSr);
         const float G = g / (1.0f + g);
 
+        // Mixer: oscillators plus the (DC-blocked) filter output fed back in, through an
+        // asymmetric overdrive stage, like cranking a Minimoog / Poly D mixer.
+        float mix[2] = { sL * 0.35f, sR * 0.35f };
+        for (int ch = 0; ch < 2; ++ch)
+        {
+            fbLow[ch] += (prevOut[ch] - fbLow[ch]) * fbHpCoef;
+            mix[ch] = asymSat ((mix[ch] + fbGain * (prevOut[ch] - fbLow[ch])) * gritGain, gritBias) * gritOut;
+        }
+
+        const float yL = filterL.process (mix[0], G, k, drive, p.fltType);
+        const float yR = filterR.process (mix[1], G, k, drive, p.fltType);
+        prevOut[0] = yL;
+        prevOut[1] = yR;
+
         const float amp = ae * ampGain * postGain;
-        outL[i] += filterL.process (sL * 0.35f, G, k, drive, p.fltType) * amp;
-        outR[i] += filterR.process (sR * 0.35f, G, k, drive, p.fltType) * amp;
+        outL[i] += yL * amp;
+        outR[i] += yR * amp;
 
         if (! ampEnv.isActive())
         {
@@ -187,14 +224,33 @@ void Voice::render (float* outL, float* outR, int num, const EngineParams& p,
 }
 
 //==============================================================================
-void SynthEngine::prepare (double sampleRate, int)
+void SynthEngine::prepare (double sampleRate, int maxBlockSize)
 {
-    sr = sampleRate;
-    for (int i = 0; i < kMaxVoices; ++i)
-        voices[(size_t) i].prepare (sampleRate, i + 1);
+    maxBlock = std::max (32, maxBlockSize);
+    hostRate = sampleRate;
+    os2x.initProcessing ((size_t) maxBlock);
+    os4x.initProcessing ((size_t) maxBlock);
     monoStack.clear();
     monoStack.reserve (128);
     lfoPhase = 0.0;
+    const int factor = osFactor;
+    osFactor = 0;
+    setHighQuality (factor == 4);
+}
+
+void SynthEngine::setHighQuality (bool high)
+{
+    const int factor = high ? 4 : 2;
+    if (factor == osFactor)
+        return;
+
+    osFactor = factor;
+    os2x.reset();
+    os4x.reset();
+    sr = hostRate * factor;
+    for (int i = 0; i < kMaxVoices; ++i)
+        voices[(size_t) i].prepare (sr, i + 1);
+    monoStack.clear();
 }
 
 void SynthEngine::setTransport (double newBpm, double ppqAtBlockStart, bool isPlaying)
@@ -214,8 +270,6 @@ void SynthEngine::allNotesOff()
 void SynthEngine::process (juce::AudioBuffer<float>& buffer, const juce::MidiBuffer& midi)
 {
     const int n = buffer.getNumSamples();
-    float* L = buffer.getWritePointer (0);
-    float* R = buffer.getNumChannels() > 1 ? buffer.getWritePointer (1) : nullptr;
 
     // Tempo-synced LFO locks to the host's bar position while playing.
     if (params.lfoSync && playing && ! params.lfoRetrig)
@@ -225,19 +279,41 @@ void SynthEngine::process (juce::AudioBuffer<float>& buffer, const juce::MidiBuf
         if (lfoPhase < 0.0) lfoPhase += 1.0;
     }
 
-    int pos = 0;
-    for (const auto meta : midi)
+    // Render oversampled: upsample the (silent) host block to get an oversampled buffer, fill
+    // it with the voices, then filter back down. MIDI positions scale by the factor.
+    juce::dsp::AudioBlock<float> hostBlock (buffer);
+    hostBlock = hostBlock.getSubsetChannelBlock (0, (size_t) std::min (2, buffer.getNumChannels()));
+
+    for (int offset = 0; offset < n; offset += maxBlock)
     {
-        const int t = std::clamp (meta.samplePosition, 0, n);
-        if (t > pos)
+        const int len = std::min (maxBlock, n - offset);
+        auto sub = hostBlock.getSubBlock ((size_t) offset, (size_t) len);
+        auto& os = osFactor == 4 ? os4x : os2x;
+        auto up = os.processSamplesUp (sub);
+        up.clear();
+
+        float* oL = up.getChannelPointer (0);
+        float* oR = up.getNumChannels() > 1 ? up.getChannelPointer (1) : nullptr;
+        const int upLen = (int) up.getNumSamples();
+
+        int pos = 0;
+        for (const auto meta : midi)
         {
-            renderChunk (L, R, pos, t - pos);
-            pos = t;
+            if (meta.samplePosition < offset || meta.samplePosition >= offset + len)
+                continue;
+            const int t = std::clamp ((meta.samplePosition - offset) * osFactor, 0, upLen);
+            if (t > pos)
+            {
+                renderChunk (oL, oR, pos, t - pos);
+                pos = t;
+            }
+            handleMidi (meta.getMessage());
         }
-        handleMidi (meta.getMessage());
+        if (pos < upLen)
+            renderChunk (oL, oR, pos, upLen - pos);
+
+        os.processSamplesDown (sub);
     }
-    if (pos < n)
-        renderChunk (L, R, pos, n - pos);
 }
 
 void SynthEngine::renderChunk (float* L, float* R, int start, int num)

@@ -5,7 +5,7 @@ namespace m84
 juce::StringArray oscWaveNames()    { return { "Sine", "Triangle", "Saw", "Square" }; }
 juce::StringArray lfoWaveNames()    { return { "Sine", "Triangle", "Saw Down", "Saw Up", "Square", "S&H" }; }
 juce::StringArray filterTypeNames() { return { "LP 24", "LP 12", "BP", "HP 24" }; }
-juce::StringArray driveTypeNames()  { return { "Tube", "Hard", "Fold", "Crush" }; }
+juce::StringArray driveTypeNames()  { return { "Tube", "Hard", "Fold", "Crush", "Grind", "Amp" }; }
 juce::StringArray voiceModeNames()  { return { "Poly", "Mono", "Legato" }; }
 
 const juce::StringArray& lfoSyncNames()
@@ -103,6 +103,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (choice (ID::subWave, "Sub Wave", { "Sine", "Square" }, 0));
     layout.add (flt (ID::noise, "Noise", { 0.0f, 1.0f }, 0.0f, pct));
     layout.add (flt (ID::spread, "Unison Spread", { 0.0f, 1.0f }, 0.6f, pct));
+    layout.add (flt (ID::grit, "Mixer Grit", { 0.0f, 1.0f }, 0.0f, pct));
+    layout.add (flt (ID::feedback, "Mixer Feedback", { 0.0f, 1.0f }, 0.0f, pct));
+    layout.add (toggle (ID::oscSync, "Osc B Sync", false));
+    layout.add (flt (ID::oscFM, "Osc A > B FM", { 0.0f, 1.0f }, 0.0f, pct));
 
     layout.add (choice (ID::fltType, "Filter Type", filterTypeNames(), 0));
     layout.add (flt (ID::cutoff, "Cutoff", skewed (20.0f, 20000.0f, 900.0f), 8000.0f, hz));
@@ -160,6 +164,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (flt (ID::pumpAmt, "Pump Amount", { 0.0f, 1.0f }, 0.0f, pct));
 
     layout.add (flt (ID::master, "Master Volume", { -36.0f, 6.0f }, -6.0f, db));
+    layout.add (toggle (ID::hq, "High Quality (4x)", false));
 
     return layout;
 }
