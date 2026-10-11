@@ -8,7 +8,7 @@ Harmor / Sawer (drive, pumping, big detuned saws).
 ![Midnight 84](docs/screenshot.png)
 
 **Listen:** [**Neon Requiem** (full 3-minute track)](demo/midnight84_neon_requiem.mp3) ·
-[grit: before/after](demo/midnight84_grit_before_after.mp3) · [heavy presets](demo/midnight84_heavy_presets.mp3) ·
+[grit: before/after](demo/midnight84_grit_before_after.mp3) · [new features](demo/midnight84_new_features.mp3) · [heavy presets](demo/midnight84_heavy_presets.mp3) ·
 [full demo](demo/midnight84_demo_full.mp3) · [bass lines only](demo/midnight84_demo_bass_only.mp3) ·
 [Crimson Overdrive lead solo](demo/midnight84_lead_solo.mp3) · [lead with band](demo/midnight84_lead_with_band.mp3)
 (rendered offline from the plugin itself with `tests/DemoSong.cpp`; the drums in the full mix are simple synthesized placeholders)
@@ -21,12 +21,21 @@ Harmor / Sawer (drive, pumping, big detuned saws).
 - **Analog-style mixer**: **Grit** overdrives the mixer through an asymmetric stage (even harmonics, like
   cranking a Minimoog / Poly D mixer). **Feedback** routes the filter output back into the mixer, the classic
   Minimoog "patch the headphone out into the external input" trick, for growl and compression.
+- **Poly-Mod** (Prophet-5 style): **Env > B Pitch** sweeps Osc B with the filter envelope. With Sync on,
+  that's the classic screaming sync-sweep lead. **B > Cutoff** modulates the filter at audio rate, for growl.
+- **Ring modulator** (ARP Odyssey style): Osc A × Osc B for metallic, clangorous tones.
+- **Arpeggiator** (Poly D / Juno style): Up, Down, Up/Down, Random, As Played; 1/4 to 1/32 including
+  triplets; 1–4 octaves; gate length. It locks to FL Studio's grid while playing and free-runs when stopped.
 - **Oversampled voice engine**: voices run at 2x the host rate (4x with **HQ** on), so the saturation
   produces harmonics rather than digital aliasing fizz.
 - **Sub oscillator** (sine or square, -1 or -2 octaves) and a **noise** source.
 - **4-pole transistor ladder filter** (zero-delay-feedback, Moog / Poly D style) with LP24, LP12, BP and HP24
   modes. **Every stage saturates**, like the real circuit. It has resonance up to self-oscillation, up to
   +30 dB of input drive, envelope amount (bipolar), key tracking, velocity and LFO modulation.
+  There's also an **MS-20 mode**: a 12 dB filter with a diode-limited resonance that screams and self-oscillates.
+  A **high-pass filter** sits in front (MS-20 / Juno style) to tighten the low end before the saturation.
+- **Analog slop**: the Analog knob drifts pitch and cutoff per voice, and varies each voice's envelope
+  times slightly, like separate voice cards.
 - **Filter and amp envelopes** with analog-style exponential curves, shown as hardware-style faders.
 - **LFO**: six shapes (including S&H). It can run free or sync to tempo (4 bars down to 1/32, including triplets),
   with optional retrigger. It modulates cutoff, pitch (vibrato) and pulse width.
@@ -36,12 +45,14 @@ Harmor / Sawer (drive, pumping, big detuned saws).
   - **Drive** (2x oversampled): Tube, Hard clip, Wavefolder, Bitcrush, plus two multiband modes built for
     heavy bass, **Grind** and **Amp**. These split at 140 Hz, keep the sub clean and mono, distort the mids
     hard and roll off the fizz like a speaker cabinet (Tone sets the cabinet's brightness).
+  - **Squash**: a 3-band upward + downward compressor in the style of Xfer's OTT. It brings up low-level grit
+    and detail while clamping the peaks (Depth, Time, Upward, Downward)
   - **Chorus**: Juno-ish width
   - **Delay**: tempo-synced ping-pong with a darkening filter in the feedback path
   - **Reverb**
   - **Pump**: tempo-synced sidechain-style ducking, for that pumping darksynth groove
 - **Mod wheel** adds vibrato and filter wobble. The **sustain pedal** is supported.
-- **20 factory presets**, also exposed as host programs, so they show up in FL Studio's preset menu.
+- **24 factory presets**, also exposed as host programs, so they show up in FL Studio's preset menu.
   You can **save and load** your own sounds as `.m84` files (stored by default in `Documents/Midnight 84/Presets`).
 - **Resizable UI** that keeps its aspect ratio (drag the bottom-right corner).
 
@@ -49,6 +60,10 @@ Harmor / Sawer (drive, pumping, big detuned saws).
 
 | Preset | Character |
 | --- | --- |
+| Sync Sweep Lead | Prophet-style sync lead: filter envelope sweeps the synced Osc B |
+| MS-20 Scream | Bass through the MS-20 filter at high resonance, HPF-tightened |
+| Ring Grinder | Ring mod + audio-rate filter FM, Amp drive and Squash, industrial |
+| Night Arp | Up/Down 1/16 arpeggio over 2 octaves with delay. Hold a chord |
 | Iron Teeth | Gritty Carpenter Brut-style chug: overdriven mixer, feedback, Grind distortion |
 | Gutter Grinder | Industrial snarl: synced + FM'd Osc B, heavy mixer feedback, Amp distortion |
 | Doom Engine | Slow, massive and dark, with lots of feedback growl and a dark Grind tone |
@@ -120,6 +135,8 @@ run `xattr -dr com.apple.quarantine "~/Library/Audio/Plug-Ins/VST3/Midnight 84.v
 - In **Mono** or **Legato** mode, use a little **Glide** (20–60 ms) for slides between overlapping notes.
 - For grit and teeth, use **Grit** and **Feedback** in the mixer first (analog-style dirt that the filter then
   shapes), then **Grind** or **Amp** in the Drive section (aggressive mids, clean sub).
+- **Squash** at 30–60% after Grind makes a bass dense and in-your-face. It pulls up the gritty detail between notes.
+- Use the **HPF** (60–150 Hz) before heavy Grit or the MS-20 filter to keep the lows tight instead of flubby.
 - Turn on **HQ 4x** when bouncing or for high, heavily driven leads. It roughly doubles CPU.
 
 ## Controls
@@ -135,7 +152,8 @@ Source/
   Parameters.*      parameter definitions
   DSP.h             oscillators, ladder filter, envelopes
   SynthEngine.*     voices, voice allocation, MIDI, LFO
-  Effects.*         drive, delay, pump and the FX chain
+  Arpeggiator.*     tempo-locked arpeggiator
+  Effects.*         drive, squash, delay, pump and the FX chain
   Presets.*         factory presets
   PluginProcessor.* plugin entry, state, presets
   LookAndFeel.*     synthwave styling
