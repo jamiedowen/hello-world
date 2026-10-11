@@ -75,6 +75,22 @@ namespace ID
 
     inline constexpr const char* master     = "master";
     inline constexpr const char* hq         = "hq";
+
+    inline constexpr const char* hpf        = "hpf";
+    inline constexpr const char* pmEnvB     = "pmEnvB";   // poly-mod: filter env -> osc B pitch
+    inline constexpr const char* pmBCut     = "pmBCut";   // poly-mod: osc B -> filter cutoff
+    inline constexpr const char* ring       = "ring";
+
+    inline constexpr const char* arpOn      = "arpOn";
+    inline constexpr const char* arpMode    = "arpMode";
+    inline constexpr const char* arpRate    = "arpRate";
+    inline constexpr const char* arpOct     = "arpOct";
+    inline constexpr const char* arpGate    = "arpGate";
+
+    inline constexpr const char* sqDepth    = "sqDepth";
+    inline constexpr const char* sqTime     = "sqTime";
+    inline constexpr const char* sqUp       = "sqUp";
+    inline constexpr const char* sqDown     = "sqDown";
 }
 
 constexpr int kNumOscs = 3;
@@ -86,6 +102,9 @@ juce::StringArray lfoWaveNames();
 juce::StringArray filterTypeNames();
 juce::StringArray driveTypeNames();
 juce::StringArray voiceModeNames();
+juce::StringArray arpModeNames();
+const juce::StringArray& arpRateNames();
+const std::vector<double>& arpRateBeats();
 
 // Note lengths in beats, paired with their display names.
 const juce::StringArray& lfoSyncNames();

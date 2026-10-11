@@ -47,6 +47,7 @@ juce_add_plugin(Midnight84
     AU_MAIN_TYPE kAudioUnitType_MusicDevice)
 
 target_sources(Midnight84 PRIVATE
+    Source/Arpeggiator.cpp
     Source/Components.cpp
     Source/Effects.cpp
     Source/LookAndFeel.cpp

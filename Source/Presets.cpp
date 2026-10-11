@@ -170,6 +170,7 @@ const std::vector<Preset>& factoryPresets()
             { "fD", 0.22f }, { "fS", 0.3f }, { "fR", 0.12f },
             { "aA", 0.001f }, { "aS", 1.0f }, { "aR", 0.1f },
             { "drvType", 4 }, { "drvAmt", 0.55f }, { "drvTone", 0.65f },
+            { "sqDepth", 0.35f },
             { "voiceMode", 1 }, { "glide", 0.02f }, { "analog", 0.45f } } },
 
         { "Gutter Grinder", {
@@ -206,6 +207,55 @@ const std::vector<Preset>& factoryPresets()
             { "aA", 0.001f }, { "aS", 1.0f }, { "aR", 0.1f },
             { "drvType", 4 }, { "drvAmt", 0.6f }, { "drvTone", 0.6f },
             { "voiceMode", 1 } } },
+
+        { "Sync Sweep Lead", {
+            { "osc1Wave", 2 }, { "osc1Level", 0.0f },
+            { "osc2Wave", 2 }, { "osc2Level", 0.8f }, { "osc2Sync", 1 },
+            { "osc3Wave", 2 }, { "osc3Level", 0.35f }, { "osc3Fine", 8 },
+            { "pmEnvB", 0.65f },
+            { "cutoff", 3500 }, { "res", 0.15f }, { "fltDrive", 0.4f }, { "fltEnv", 0.15f },
+            { "fA", 0.0f }, { "fD", 0.55f }, { "fS", 0.15f }, { "fR", 0.3f },
+            { "aA", 0.003f }, { "aS", 1.0f }, { "aR", 0.25f },
+            { "lfoWave", 0 }, { "lfoRate", 5.5f }, { "lfoPitch", 0.09f },
+            { "grit", 0.25f },
+            { "drvType", 4 }, { "drvAmt", 0.35f }, { "drvTone", 0.8f },
+            { "dlyTime", 4 }, { "dlyFb", 0.35f }, { "dlyMix", 0.22f }, { "revMix", 0.22f },
+            { "voiceMode", 2 }, { "glide", 0.04f } } },
+
+        { "MS-20 Scream", {
+            { "osc1Wave", 2 }, { "osc1Level", 0.8f },
+            { "osc2Wave", 3 }, { "osc2Level", 0.55f }, { "osc2Oct", -1 },
+            { "hpf", 55.0f },
+            { "fltType", 4 }, { "cutoff", 380 }, { "res", 0.85f }, { "fltDrive", 0.65f }, { "fltEnv", 0.5f }, { "fltKey", 0.4f },
+            { "fD", 0.25f }, { "fS", 0.2f }, { "fR", 0.15f },
+            { "aA", 0.001f }, { "aS", 1.0f }, { "aR", 0.1f },
+            { "grit", 0.4f },
+            { "drvType", 4 }, { "drvAmt", 0.35f }, { "drvTone", 0.6f },
+            { "voiceMode", 1 }, { "glide", 0.02f } } },
+
+        { "Ring Grinder", {
+            { "osc1Wave", 2 }, { "osc1Level", 0.75f },
+            { "osc2Wave", 3 }, { "osc2Level", 0.3f }, { "osc2Semi", 7 }, { "osc2Fine", 12 },
+            { "ring", 0.6f }, { "pmBCut", 0.3f },
+            { "subLevel", 0.5f },
+            { "grit", 0.5f }, { "feedback", 0.25f },
+            { "cutoff", 700 }, { "res", 0.3f }, { "fltDrive", 0.5f }, { "fltEnv", 0.35f },
+            { "fD", 0.3f }, { "fS", 0.4f },
+            { "aA", 0.001f }, { "aS", 1.0f }, { "aR", 0.1f },
+            { "drvType", 5 }, { "drvAmt", 0.55f }, { "drvTone", 0.55f },
+            { "sqDepth", 0.4f },
+            { "voiceMode", 1 } } },
+
+        { "Night Arp", {
+            { "osc1Wave", 2 }, { "osc1Level", 0.8f },
+            { "osc2Wave", 3 }, { "osc2Level", 0.3f }, { "osc2Oct", 1 }, { "osc2PW", 0.3f },
+            { "cutoff", 450 }, { "res", 0.35f }, { "fltEnv", 0.55f }, { "fltVel", 0.4f },
+            { "fD", 0.18f }, { "fS", 0.0f }, { "fR", 0.2f },
+            { "aA", 0.001f }, { "aD", 0.3f }, { "aS", 0.0f }, { "aR", 0.2f },
+            { "arpOn", 1 }, { "arpMode", 2 }, { "arpRate", 3 }, { "arpOct", 2 }, { "arpGate", 0.45f },
+            { "dlyTime", 4 }, { "dlyFb", 0.4f }, { "dlyMix", 0.25f }, { "revMix", 0.25f },
+            { "sqDepth", 0.5f },
+            { "voiceMode", 0 }, { "polyphony", 8 } } },
     };
     return presets;
 }

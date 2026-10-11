@@ -40,7 +40,13 @@ void Voice::start (int newNote, float vel, bool retrigger, bool glide, const Eng
             cutoffOffset = rng.nextFloat() * 2.0f - 1.0f;
             filterL.reset();
             filterR.reset();
+            ms20L.reset();
+            ms20R.reset();
+            hpfL.reset();
+            hpfR.reset();
             prevOut[0] = prevOut[1] = fbLow[0] = fbLow[1] = 0.0f;
+            for (auto& e : envSlop)
+                e = rng.nextFloat() * 2.0f - 1.0f; // scaled by the Analog knob at render time
         }
 
         ampEnv.noteOn();
@@ -71,8 +77,17 @@ void Voice::render (float* outL, float* outR, int num, const EngineParams& p,
     if (! ampEnv.isActive())
         return;
 
-    ampEnv.setParameters (p.aA, p.aD, p.aS, p.aR, sr);
-    filtEnv.setParameters (p.fA, p.fD, p.fS, p.fR, sr);
+    // Analog slop: like separate voice cards, each voice's envelopes run slightly fast or slow.
+    const float slop = p.analog * 0.15f;
+    const float slopA = 1.0f + envSlop[0] * slop, slopD = 1.0f + envSlop[1] * slop, slopR = 1.0f + envSlop[2] * slop;
+    ampEnv.setParameters (p.aA * slopA, p.aD * slopD, p.aS, p.aR * slopR, sr);
+    filtEnv.setParameters (p.fA * slopA, p.fD * slopD, p.fS, p.fR * slopR, sr);
+    const bool useHpf = p.hpf > 20.5f;
+    if (useHpf)
+    {
+        hpfL.set (p.hpf, 0.7071f, sr);
+        hpfR.set (p.hpf, 0.7071f, sr);
+    }
     glideCoef = p.glide > 0.0005f ? std::exp (-3.0f / (p.glide * sr)) : 0.0f;
 
     // Slow analog pitch wander.
@@ -94,13 +109,16 @@ void Voice::render (float* outL, float* outR, int num, const EngineParams& p,
     };
     OscRender ro[kNumOscs];
     const bool modulatesB = (p.oscSync || p.oscFM > 0.0001f) && p.osc[1].level > 0.0001f;
+    const bool ringOn = p.ring > 0.0001f;
+    const bool needA = modulatesB || ringOn;                 // osc A runs silently as a source
+    const bool needB = ringOn || p.pmBCut > 0.0001f;         // osc B runs silently as a source
 
     for (int o = 0; o < kNumOscs; ++o)
     {
         const auto& op = p.osc[(size_t) o];
         auto& r = ro[o];
         r.heard = op.level > 0.0001f;
-        r.on = r.heard || (o == 0 && modulatesB);
+        r.on = r.heard || (o == 0 && needA) || (o == 1 && needB);
         if (! r.on) continue;
 
         r.n = std::clamp (op.unison, 1, kMaxUnison);
@@ -129,6 +147,7 @@ void Voice::render (float* outL, float* outR, int num, const EngineParams& p,
     const float drive = std::exp2 (p.fltDrive * 5.0f);              // up to +30 dB into the ladder
     const float postGain = 1.0f / (1.0f + p.fltDrive * 2.5f);
     const float fmIndex = p.oscFM * p.oscFM * 4.0f;
+    const float ms20Gain = 0.8f;
     const float gritGain = std::exp2 (p.grit * 4.5f);               // mixer overdrive, up to ~+27 dB
     const float gritBias = 0.35f * p.grit;                          // asymmetry -> even harmonics
     const float gritOut = 1.0f / (1.0f + p.grit * 1.5f);
@@ -147,6 +166,8 @@ void Voice::render (float* outL, float* outR, int num, const EngineParams& p,
 
         float sL = 0.0f, sR = 0.0f;
         float aOut[kMaxUnison] {};
+        float bOut = 0.0f;
+        const float envPitchB = p.pmEnvB > 0.0001f ? std::exp2 (lastFilterEnv * p.pmEnvB * 2.0f) : 1.0f; // up to +2 octaves
         for (int o = 0; o < kNumOscs; ++o)
         {
             const auto& r = ro[o];
@@ -158,6 +179,8 @@ void Voice::render (float* outL, float* outR, int num, const EngineParams& p,
             {
                 auto& osc = oscs[(size_t) o][(size_t) u];
                 float dt = baseDt * r.ratio[u];
+                if (o == 1)
+                    dt *= envPitchB;
                 if (isB)
                 {
                     const int m = u % ro[0].n;
@@ -168,6 +191,7 @@ void Voice::render (float* outL, float* outR, int num, const EngineParams& p,
                 }
                 const float s = osc.process (op.wave, std::min (dt, 0.45f), pw);
                 if (o == 0) aOut[u] = s;
+                if (o == 1 && u == 0) bOut = s;
                 sL += s * r.gainL[u];
                 sR += s * r.gainR[u];
             }
@@ -180,6 +204,13 @@ void Voice::render (float* outL, float* outR, int num, const EngineParams& p,
             sR += s;
         }
 
+        if (ringOn && ro[0].on && ro[1].on)
+        {
+            const float rm = aOut[0] * bOut * p.ring * 0.9f;
+            sL += rm;
+            sR += rm;
+        }
+
         if (p.noise > 0.0001f)
         {
             const float n = noise.next() * p.noise * 0.7f;
@@ -188,11 +219,13 @@ void Voice::render (float* outL, float* outR, int num, const EngineParams& p,
         }
 
         const float fe = filtEnv.next();
+        lastFilterEnv = fe;
         const float ae = ampEnv.next();
 
         const float oct = cutoffOct + p.fltEnv * fe * velFilter * 8.0f
                         + p.fltKey * (currentNote - 60.0f) * (1.0f / 12.0f)
-                        + l * lfoCut + cutoffOffset * p.analog * 0.15f;
+                        + l * lfoCut + cutoffOffset * p.analog * 0.15f
+                        + bOut * p.pmBCut * 4.0f; // audio-rate filter FM from osc B
         const float fc = std::clamp (std::exp2 (oct), 16.0f, maxFc);
         const float g = std::tan (kPi * fc * invSr);
         const float G = g / (1.0f + g);
@@ -206,8 +239,24 @@ void Voice::render (float* outL, float* outR, int num, const EngineParams& p,
             mix[ch] = asymSat ((mix[ch] + fbGain * (prevOut[ch] - fbLow[ch])) * gritGain, gritBias) * gritOut;
         }
 
-        const float yL = filterL.process (mix[0], G, k, drive, p.fltType);
-        const float yR = filterR.process (mix[1], G, k, drive, p.fltType);
+        if (useHpf)
+        {
+            float lp, bp, hp;
+            hpfL.process (mix[0], lp, bp, hp); mix[0] = hp;
+            hpfR.process (mix[1], lp, bp, hp); mix[1] = hp;
+        }
+
+        float yL, yR;
+        if (p.fltType == 4)
+        {
+            yL = ms20L.process (mix[0], g, p.res, drive) * ms20Gain;
+            yR = ms20R.process (mix[1], g, p.res, drive) * ms20Gain;
+        }
+        else
+        {
+            yL = filterL.process (mix[0], G, k, drive, p.fltType);
+            yR = filterR.process (mix[1], G, k, drive, p.fltType);
+        }
         prevOut[0] = yL;
         prevOut[1] = yR;
 

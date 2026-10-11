@@ -19,8 +19,11 @@ namespace
     const auto cDelay  = Palette::pink;
     const auto cReverb = Palette::blue;
     const auto cPump   = Palette::magenta;
+    const auto cArp    = Palette::orange;
+    const auto cMod    = Palette::pink;
+    const auto cSquash = Palette::red;
 
-    constexpr int horizonY = 640;
+    constexpr int horizonY = 780;
 }
 
 MainContent::MainContent (Midnight84AudioProcessor& p)
@@ -86,10 +89,10 @@ MainContent::MainContent (Midnight84AudioProcessor& p)
         knob (ID::res, "Resonance", cFilter, { x + 214, y + 26, 84, 92 });
         knob (ID::fltDrive, "Drive", cFilter, { x + 300, y + 26, 84, 92 });
 
-        const char* ids[] = { ID::fltEnv, ID::fltKey, ID::fltVel, ID::fltLfo };
-        const char* labels[] = { "Env Amt", "Key Trk", "Velocity", "LFO" };
-        for (int k = 0; k < 4; ++k)
-            knob (ids[k], labels[k], cFilter, { x + 14 + k * 96, y + 120, 84, 74 });
+        const char* ids[] = { ID::fltEnv, ID::fltKey, ID::fltVel, ID::fltLfo, ID::hpf };
+        const char* labels[] = { "Env Amt", "Key Trk", "Velocity", "LFO", "HPF" };
+        for (int k = 0; k < 5; ++k)
+            knob (ids[k], labels[k], cFilter, { x + 8 + k * 77, y + 120, 76, 74 });
     }
 
     {
@@ -172,6 +175,33 @@ MainContent::MainContent (Midnight84AudioProcessor& p)
         const auto r = panel (1076, 516, 112, 180, "PUMP", cPump);
         selector (ID::pumpRate, "Rate", cPump, { r.getX() + 8, r.getY() + 30, 96, 44 });
         knob (ID::pumpAmt, "Amount", cPump, { r.getX() + 16, r.getY() + 88, 80, 84 });
+    }
+
+    // Row 4: arpeggiator, poly-mod / ring, squash -------------------------------------------
+    {
+        const auto r = panel (12, 704, 400, 150, "ARPEGGIATOR", cArp);
+        const int x = r.getX(), y = r.getY();
+        toggle (ID::arpOn, "Arp On", cArp, { x + 10, y + 44, 92, 26 });
+        selector (ID::arpMode, "Mode", cArp, { x + 110, y + 28, 140, 44 });
+        selector (ID::arpRate, "Rate", cArp, { x + 258, y + 28, 132, 44 });
+        knob (ID::arpOct, "Octaves", cArp, { x + 140, y + 78, 72, 66 });
+        knob (ID::arpGate, "Gate", cArp, { x + 288, y + 78, 72, 66 });
+    }
+
+    {
+        const auto r = panel (420, 704, 360, 150, "POLY-MOD / RING", cMod);
+        const char* ids[] = { ID::pmEnvB, ID::pmBCut, ID::ring };
+        const char* labels[] = { "Env > B Pitch", "B > Cutoff", "Ring A*B" };
+        for (int k = 0; k < 3; ++k)
+            knob (ids[k], labels[k], cMod, { r.getX() + 14 + k * 114, r.getY() + 28, 104, 114 });
+    }
+
+    {
+        const auto r = panel (788, 704, 400, 150, "SQUASH", cSquash);
+        const char* ids[] = { ID::sqDepth, ID::sqTime, ID::sqUp, ID::sqDown };
+        const char* labels[] = { "Depth", "Time", "Upward", "Downward" };
+        for (int k = 0; k < 4; ++k)
+            knob (ids[k], labels[k], cSquash, { r.getX() + 10 + k * 96, r.getY() + 28, 92, 114 });
     }
 }
 
@@ -391,7 +421,7 @@ Midnight84AudioProcessorEditor::Midnight84AudioProcessorEditor (Midnight84AudioP
 
     constexpr double aspect = (double) m84::MainContent::baseWidth / (double) m84::MainContent::baseHeight;
     setResizable (true, true);
-    setResizeLimits (840, 532, 1800, 1140);
+    setResizeLimits (840, 630, 1800, 1350);
     if (auto* c = getConstrainer())
         c->setFixedAspectRatio (aspect);
     setSize (m84::MainContent::baseWidth, m84::MainContent::baseHeight);

@@ -7,12 +7,12 @@
 
 namespace m84
 {
-// Fixed-size (1200 x 760) panel holding every control; the editor scales it.
+// Fixed-size (1200 x 900) panel holding every control; the editor scales it.
 class MainContent : public juce::Component
 {
 public:
     static constexpr int baseWidth = 1200;
-    static constexpr int baseHeight = 760;
+    static constexpr int baseHeight = 900;
 
     explicit MainContent (Midnight84AudioProcessor& p);
     void paint (juce::Graphics&) override;

@@ -56,6 +56,12 @@ void Midnight84AudioProcessor::cacheParameterPointers()
     pp.revSize = get (ID::revSize);     pp.revDamp = get (ID::revDamp);   pp.revMix = get (ID::revMix);
     pp.pumpRate = get (ID::pumpRate);   pp.pumpAmt = get (ID::pumpAmt);   pp.master = get (ID::master);
     pp.hq = get (ID::hq);
+    pp.hpf = get (ID::hpf);             pp.pmEnvB = get (ID::pmEnvB);     pp.pmBCut = get (ID::pmBCut);
+    pp.ring = get (ID::ring);
+    pp.arpOn = get (ID::arpOn);         pp.arpMode = get (ID::arpMode);   pp.arpRate = get (ID::arpRate);
+    pp.arpOct = get (ID::arpOct);       pp.arpGate = get (ID::arpGate);
+    pp.sqDepth = get (ID::sqDepth);     pp.sqTime = get (ID::sqTime);     pp.sqUp = get (ID::sqUp);
+    pp.sqDown = get (ID::sqDown);
 }
 
 EngineParams Midnight84AudioProcessor::readEngineParams() const
@@ -82,6 +88,7 @@ EngineParams Midnight84AudioProcessor::readEngineParams() const
     p.noise = f (pp.noise); p.spread = f (pp.spread);
     p.grit = f (pp.grit); p.feedback = f (pp.feedback);
     p.oscSync = f (pp.oscSync) > 0.5f; p.oscFM = f (pp.oscFM);
+    p.pmEnvB = f (pp.pmEnvB); p.pmBCut = f (pp.pmBCut); p.ring = f (pp.ring); p.hpf = f (pp.hpf);
     p.fltType = i (pp.fltType); p.cutoff = f (pp.cutoff); p.res = f (pp.res); p.fltDrive = f (pp.fltDrive);
     p.fltEnv = f (pp.fltEnv); p.fltKey = f (pp.fltKey); p.fltVel = f (pp.fltVel); p.fltLfo = f (pp.fltLfo);
     p.fA = f (pp.fA); p.fD = f (pp.fD); p.fS = f (pp.fS); p.fR = f (pp.fR);
@@ -105,6 +112,7 @@ FxParams Midnight84AudioProcessor::readFxParams() const
     p.dlyTime = i (pp.dlyTime); p.dlyFb = f (pp.dlyFb); p.dlyTone = f (pp.dlyTone); p.dlyMix = f (pp.dlyMix);
     p.revSize = f (pp.revSize); p.revDamp = f (pp.revDamp); p.revMix = f (pp.revMix);
     p.pumpRate = i (pp.pumpRate); p.pumpAmt = f (pp.pumpAmt);
+    p.sqDepth = f (pp.sqDepth); p.sqTime = f (pp.sqTime); p.sqUp = f (pp.sqUp); p.sqDown = f (pp.sqDown);
     p.masterDb = f (pp.master);
     return p;
 }
@@ -112,6 +120,7 @@ FxParams Midnight84AudioProcessor::readFxParams() const
 void Midnight84AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     const int block = std::max (samplesPerBlock, 32);
+    arp.prepare (sampleRate);
     engine.prepare (sampleRate, block);
     fx.prepare (sampleRate, block);
 }
@@ -147,6 +156,14 @@ void Midnight84AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     }
 
     engine.setHighQuality (pp.hq->load (std::memory_order_relaxed) > 0.5f);
+    m84::ArpParams ap;
+    ap.on = pp.arpOn->load (std::memory_order_relaxed) > 0.5f;
+    ap.mode = juce::roundToInt (pp.arpMode->load (std::memory_order_relaxed));
+    ap.rate = juce::roundToInt (pp.arpRate->load (std::memory_order_relaxed));
+    ap.octaves = juce::roundToInt (pp.arpOct->load (std::memory_order_relaxed));
+    ap.gate = pp.arpGate->load (std::memory_order_relaxed);
+    arp.process (midi, buffer.getNumSamples(), ap, t.bpm, t.ppq, t.playing);
+
     engine.setParams (params);
     engine.setTransport (t.bpm, t.ppq, t.playing);
     engine.process (buffer, midi);

@@ -3,6 +3,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <array>
 #include <atomic>
+#include "Arpeggiator.h"
 #include "Effects.h"
 #include "Parameters.h"
 #include "SynthEngine.h"
@@ -83,6 +84,9 @@ private:
         std::atomic<float> *drvType, *drvAmt, *drvTone, *drvMix, *chRate, *chDepth, *chMix;
         std::atomic<float> *dlyTime, *dlyFb, *dlyTone, *dlyMix, *revSize, *revDamp, *revMix;
         std::atomic<float> *pumpRate, *pumpAmt, *master, *hq;
+        std::atomic<float> *hpf, *pmEnvB, *pmBCut, *ring;
+        std::atomic<float> *arpOn, *arpMode, *arpRate, *arpOct, *arpGate;
+        std::atomic<float> *sqDepth, *sqTime, *sqUp, *sqDown;
     };
 
     void cacheParameterPointers();
@@ -91,6 +95,7 @@ private:
     void setPresetName (const juce::String& name) { const juce::ScopedLock sl (nameLock); presetName = name; }
 
     ParamPointers pp {};
+    m84::Arpeggiator arp;
     m84::SynthEngine engine;
     m84::FxChain fx;
     int lastVoiceMode = -1;

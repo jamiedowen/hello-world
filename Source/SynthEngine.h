@@ -24,6 +24,8 @@ struct EngineParams
     float noise = 0, spread = 0.6f;
     float grit = 0, feedback = 0;      // mixer overdrive and filter-to-mixer feedback
     bool oscSync = false; float oscFM = 0; // osc B hard-synced to / frequency-modulated by osc A
+    float pmEnvB = 0, pmBCut = 0, ring = 0;  // Prophet-style poly-mod and ARP-style ring mod
+    float hpf = 20;                          // pre-filter high-pass (Hz)
 
     int fltType = 0;
     float cutoff = 8000, res = 0, fltDrive = 0, fltEnv = 0, fltKey = 0, fltVel = 0, fltLfo = 0;
@@ -64,6 +66,10 @@ private:
     Oscillator sub;
     Noise noise;
     LadderFilter filterL, filterR;
+    Ms20Filter ms20L, ms20R;
+    Svf hpfL, hpfR;
+    float lastFilterEnv = 0;
+    float envSlop[3] { 1.0f, 1.0f, 1.0f }; // per-voice attack / decay / release variation
     float prevOut[2] {}, fbLow[2] {}; // mixer feedback path (DC-blocked)
     Envelope ampEnv, filtEnv;
 

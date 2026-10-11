@@ -170,6 +170,34 @@ struct LadderFilter
     }
 };
 
+// Korg MS-20-style 12 dB filter: a state-variable core whose resonant (band-pass) path
+// is diode-limited, so high resonance screams and growls instead of whistling clean.
+// Past ~95% resonance the damping goes negative and it self-oscillates, held in by the limiter.
+struct Ms20Filter
+{
+    float ic1 = 0, ic2 = 0;
+
+    void reset() noexcept { ic1 = ic2 = 0.0f; }
+
+    // g = tan(pi * fc / fs)
+    inline float process (float x, float g, float res, float drive) noexcept
+    {
+        const float k = 2.0f - 2.1f * res;
+        const float a1 = 1.0f / (1.0f + g * (g + k));
+        const float a2 = g * a1;
+        const float a3 = g * a2;
+
+        const float v0 = fastTanh (x * drive);
+        const float v3 = v0 - ic2;
+        const float v1 = a1 * ic1 + a2 * v3;
+        const float v2 = ic2 + a2 * ic1 + a3 * v3;
+        ic1 = 2.0f * v1 - ic1;
+        ic2 = 2.0f * v2 - ic2;
+        ic1 = 1.5f * fastTanh (ic1 * (1.0f / 1.5f)); // the diode limiter
+        return v2;
+    }
+};
+
 // Analog-style ADSR: exponential segments that overshoot their targets.
 struct Envelope
 {

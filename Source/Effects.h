@@ -12,6 +12,7 @@ struct FxParams
     int dlyTime = 4; float dlyFb = 0.35f, dlyTone = 0.5f, dlyMix = 0;
     float revSize = 0.7f, revDamp = 0.5f, revMix = 0;
     int pumpRate = 1; float pumpAmt = 0;
+    float sqDepth = 0, sqTime = 1, sqUp = 0.6f, sqDown = 0.7f;
     float masterDb = -6.0f;
 };
 
@@ -43,6 +44,21 @@ private:
     int crushCounter[2] {};
     Svf lowA[2], lowB[2], highA[2], highB[2]; // Linkwitz-Riley 4th-order crossover
     Svf midBoost[2], cabA[2], cabB[2], cabLowCut[2];
+};
+
+// OTT-style 3-band upward + downward compressor: pulls up low-level grit and detail in each band
+// while clamping the peaks. Bands split at 120 Hz and 2.5 kHz (Linkwitz-Riley 4th order).
+class Squash
+{
+public:
+    void prepare (double sampleRate);
+    void reset();
+    void process (juce::AudioBuffer<float>& buffer, const FxParams& p);
+
+private:
+    double sr = 44100.0;
+    Svf lowA[2], lowB[2], restA[2], restB[2], midA[2], midB[2], highA[2], highB[2];
+    float env[3] {};
 };
 
 // Tempo-synced ping-pong delay with a darkening filter in the feedback path.
@@ -84,6 +100,7 @@ public:
 
 private:
     Drive drive;
+    Squash squash;
     juce::dsp::Chorus<float> chorus;
     PingPongDelay delay;
     juce::Reverb reverb;

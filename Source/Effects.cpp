@@ -173,6 +173,85 @@ void Drive::processMultiband (juce::dsp::AudioBlock<float>& up, const FxParams& 
     }
 }
 
+
+//==============================================================================
+void Squash::prepare (double sampleRate)
+{
+    sr = sampleRate;
+    for (int ch = 0; ch < 2; ++ch)
+    {
+        for (auto* f : { &lowA[ch], &lowB[ch], &restA[ch], &restB[ch] })
+            f->set (120.0f, 0.7071f, (float) sr);
+        for (auto* f : { &midA[ch], &midB[ch], &highA[ch], &highB[ch] })
+            f->set (2500.0f, 0.7071f, (float) sr);
+    }
+    reset();
+}
+
+void Squash::reset()
+{
+    for (int ch = 0; ch < 2; ++ch)
+        for (auto* f : { &lowA[ch], &lowB[ch], &restA[ch], &restB[ch], &midA[ch], &midB[ch], &highA[ch], &highB[ch] })
+            f->reset();
+    env[0] = env[1] = env[2] = 0.0f;
+}
+
+float squashMakeupDb = 6.5f;
+
+void Squash::process (juce::AudioBuffer<float>& buffer, const FxParams& p)
+{
+    if (p.sqDepth < 0.001f)
+        return;
+
+    const int channels = std::min (2, buffer.getNumChannels());
+    const float att = std::exp (-1.0f / (0.0005f * p.sqTime * (float) sr));
+    const float rel = std::exp (-1.0f / (0.06f * p.sqTime * (float) sr));
+    // One target level per band: loud parts are pushed down to it, quiet parts pulled up to it.
+    constexpr float target = -20.0f, downRatio = 4.0f, upRatio = 3.0f, upMaxDb = 30.0f, floorDb = -80.0f;
+    const float makeup = juce::Decibels::decibelsToGain (squashMakeupDb);
+
+    float* d[2] = { buffer.getWritePointer (0), buffer.getWritePointer (channels > 1 ? 1 : 0) };
+    for (int i = 0; i < buffer.getNumSamples(); ++i)
+    {
+        float band[3][2] {};
+        for (int ch = 0; ch < channels; ++ch)
+        {
+            float l, b, h, rest;
+            const float x = d[ch][i];
+            band[0][ch] = lowB[ch].lowpass (lowA[ch].lowpass (x));
+            restA[ch].process (x, l, b, h);
+            restB[ch].process (h, l, b, rest);
+            band[1][ch] = midB[ch].lowpass (midA[ch].lowpass (rest));
+            highA[ch].process (rest, l, b, h);
+            highB[ch].process (h, l, b, band[2][ch]);
+        }
+
+        float wet[2] {}, dry[2] {};
+        for (int k = 0; k < 3; ++k)
+        {
+            const float level = std::max (std::abs (band[k][0]), channels > 1 ? std::abs (band[k][1]) : 0.0f);
+            env[k] = level > env[k] ? att * env[k] + (1.0f - att) * level : rel * env[k] + (1.0f - rel) * level;
+
+            const float db = juce::Decibels::gainToDecibels (env[k], -120.0f);
+            float gainDb = 0.0f;
+            if (db > target)
+                gainDb -= (db - target) * (1.0f - 1.0f / downRatio) * p.sqDown;
+            else if (db > floorDb)
+                gainDb += std::min ((target - db) * (1.0f - 1.0f / upRatio), upMaxDb) * p.sqUp;
+            const float g = juce::Decibels::decibelsToGain (gainDb);
+
+            for (int ch = 0; ch < channels; ++ch)
+            {
+                wet[ch] += band[k][ch] * g;
+                dry[ch] += band[k][ch]; // band sum: same phase as the wet signal, so Depth blends cleanly
+            }
+        }
+
+        for (int ch = 0; ch < channels; ++ch)
+            d[ch][i] = dry[ch] + (wet[ch] * makeup - dry[ch]) * p.sqDepth;
+    }
+}
+
 //==============================================================================
 void PingPongDelay::prepare (double sampleRate)
 {
@@ -278,6 +357,7 @@ void Pump::process (juce::AudioBuffer<float>& buffer, const FxParams& p, const T
 void FxChain::prepare (double sampleRate, int maxBlock)
 {
     drive.prepare (sampleRate, maxBlock);
+    squash.prepare (sampleRate);
     chorus.prepare ({ sampleRate, (juce::uint32) maxBlock, 2 });
     chorus.setCentreDelay (7.0f);
     chorus.setFeedback (0.0f);
@@ -292,6 +372,7 @@ void FxChain::prepare (double sampleRate, int maxBlock)
 void FxChain::reset()
 {
     drive.reset();
+    squash.reset();
     chorus.reset();
     delay.reset();
     reverb.reset();
@@ -301,6 +382,7 @@ void FxChain::reset()
 void FxChain::process (juce::AudioBuffer<float>& buffer, const FxParams& p, const Transport& t)
 {
     drive.process (buffer, p);
+    squash.process (buffer, p);
 
     if (p.chMix > 0.001f && buffer.getNumChannels() >= 2)
     {

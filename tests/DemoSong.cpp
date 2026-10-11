@@ -1,6 +1,6 @@
 // Renders a short demo track using the real plugin engine: eight 4-bar sections of
 // dark bass lines (plus pads / arps / leads and a simple synthesized drum kit for context).
-// Usage: Midnight84DemoSong <outputDir> [lead | riff "Preset A,Preset B" | probe]
+// Usage: Midnight84DemoSong <outputDir> [lead | riff "Preset A,Preset B" | features | probe]
 // Default writes demo_full.wav and demo_bass_only.wav; "lead" writes lead_with_band.wav and lead_solo.wav.
 #include <juce_audio_formats/juce_audio_formats.h>
 #include "../Source/PluginProcessor.h"
@@ -343,6 +343,25 @@ std::vector<Section> buildProbe (const juce::String& extra)
     return { { { l }, Drums::none, 2 } };
 }
 
+
+// New-feature showcase: arp, poly-mod sync sweep, MS-20 filter, ring mod, then Squash off vs on.
+std::vector<Section> buildFeatureSong()
+{
+    const std::vector<int> chug { 0, R, 0, 0, 12, 0, 0, R, 0, 0, 12, 0, 3, R, 1, 0 };
+    const auto riff = stepLine ({ 41, 41, 37, 36 }, chug, 0.72);
+    std::vector<Section> song;
+    song.push_back ({ { { "Night Arp", chords ({ { 53, 56, 60 }, { 53, 56, 61 }, { 55, 58, 63 }, { 52, 55, 60 } }, 4.0), 1.0f, true, {}, {} } },
+                      Drums::fourFloor, 4 });
+    song.push_back ({ { { "Sync Sweep Lead", melody ({ { 72, 1.5 }, { 70, 0.5 }, { 68, 1.0 }, { 67, 1.0 }, { 65, 2.0 }, { 68, 2.0 },
+                                                       { 70, 1.5 }, { 72, 0.5 }, { 75, 2.0 }, { 72, 4.0 } }), 1.0f, true, {}, {} } },
+                      Drums::fourFloor, 4 });
+    song.push_back ({ { { "MS-20 Scream", riff, 1.0f, true, {}, {} } }, Drums::fourFloor, 4 });
+    song.push_back ({ { { "Ring Grinder", riff, 1.0f, true, {}, {} } }, Drums::fourFloor, 4 });
+    song.push_back ({ { { "Iron Teeth", riff, 1.0f, true, {}, { { "sqDepth", 0.0f } } } }, Drums::fourFloor, 4 });
+    song.push_back ({ { { "Iron Teeth", riff, 1.0f, true, {}, { { "sqDepth", 0.8f } } } }, Drums::fourFloor, 4 });
+    return song;
+}
+
 void writeWav (const juce::File& file, juce::AudioBuffer<float> buffer)
 {
     // Gentle soft-clip then normalise to -1 dBFS.
@@ -375,6 +394,7 @@ int main (int argc, char* argv[])
     const juce::String mode = argc > 2 ? juce::String (argv[2]) : juce::String();
     const bool leadMode = mode == "lead";
     const auto song = mode == "riff"  ? buildRiffSong (juce::StringArray::fromTokens (argc > 3 ? argv[3] : "Brut Force,Turbo Slayer,Perturbed Bass", ",", ""))
+                    : mode == "features" ? buildFeatureSong()
                     : mode == "probe" ? buildProbe (argc > 3 ? juce::String (argv[3]) : juce::String())
                     : leadMode        ? buildLeadSong() : buildSong();
     const int tail = (int) (3.0 * sr);
@@ -416,8 +436,8 @@ int main (int argc, char* argv[])
         }
         return 0;
     }
-    writeWav (outDir.getChildFile (mode == "riff" ? "riff_full.wav" : leadMode ? "lead_with_band.wav" : "demo_full.wav"), full);
-    writeWav (outDir.getChildFile (mode == "riff" ? "riff_bass.wav" : leadMode ? "lead_solo.wav" : "demo_bass_only.wav"), stem);
+    writeWav (outDir.getChildFile (mode == "features" ? "features_full.wav" : mode == "riff" ? "riff_full.wav" : leadMode ? "lead_with_band.wav" : "demo_full.wav"), full);
+    writeWav (outDir.getChildFile (mode == "features" ? "features_synth.wav" : mode == "riff" ? "riff_bass.wav" : leadMode ? "lead_solo.wav" : "demo_bass_only.wav"), stem);
     std::printf ("done: %.1f s\n", total / sr);
     return 0;
 }

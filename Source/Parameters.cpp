@@ -4,9 +4,21 @@ namespace m84
 {
 juce::StringArray oscWaveNames()    { return { "Sine", "Triangle", "Saw", "Square" }; }
 juce::StringArray lfoWaveNames()    { return { "Sine", "Triangle", "Saw Down", "Saw Up", "Square", "S&H" }; }
-juce::StringArray filterTypeNames() { return { "LP 24", "LP 12", "BP", "HP 24" }; }
+juce::StringArray filterTypeNames() { return { "LP 24", "LP 12", "BP", "HP 24", "MS-20" }; }
 juce::StringArray driveTypeNames()  { return { "Tube", "Hard", "Fold", "Crush", "Grind", "Amp" }; }
 juce::StringArray voiceModeNames()  { return { "Poly", "Mono", "Legato" }; }
+juce::StringArray arpModeNames()    { return { "Up", "Down", "Up/Down", "Random", "As Played" }; }
+
+const juce::StringArray& arpRateNames()
+{
+    static const juce::StringArray n { "1/4", "1/8", "1/8T", "1/16", "1/16T", "1/32" };
+    return n;
+}
+const std::vector<double>& arpRateBeats()
+{
+    static const std::vector<double> b { 1.0, 0.5, 1.0 / 3.0, 0.25, 1.0 / 6.0, 0.125 };
+    return b;
+}
 
 const juce::StringArray& lfoSyncNames()
 {
@@ -165,6 +177,22 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
 
     layout.add (flt (ID::master, "Master Volume", { -36.0f, 6.0f }, -6.0f, db));
     layout.add (toggle (ID::hq, "High Quality (4x)", false));
+
+    layout.add (flt (ID::hpf, "High-Pass Filter", skewed (20.0f, 2000.0f, 200.0f), 20.0f, hz));
+    layout.add (flt (ID::pmEnvB, "Poly-Mod Env > Osc B", { 0.0f, 1.0f }, 0.0f, pct));
+    layout.add (flt (ID::pmBCut, "Poly-Mod Osc B > Cutoff", { 0.0f, 1.0f }, 0.0f, pct));
+    layout.add (flt (ID::ring, "Ring Mod", { 0.0f, 1.0f }, 0.0f, pct));
+
+    layout.add (toggle (ID::arpOn, "Arp On", false));
+    layout.add (choice (ID::arpMode, "Arp Mode", arpModeNames(), 0));
+    layout.add (choice (ID::arpRate, "Arp Rate", arpRateNames(), 3));
+    layout.add (flt (ID::arpOct, "Arp Octaves", { 1.0f, 4.0f, 1.0f }, 1.0f, plain));
+    layout.add (flt (ID::arpGate, "Arp Gate", { 0.05f, 1.0f }, 0.6f, pct));
+
+    layout.add (flt (ID::sqDepth, "Squash Depth", { 0.0f, 1.0f }, 0.0f, pct));
+    layout.add (flt (ID::sqTime, "Squash Time", skewed (0.1f, 4.0f, 1.0f), 1.0f, [] (float v, int) { return juce::String (v, 2) + "x"; }));
+    layout.add (flt (ID::sqUp, "Squash Upward", { 0.0f, 1.0f }, 0.6f, pct));
+    layout.add (flt (ID::sqDown, "Squash Downward", { 0.0f, 1.0f }, 0.7f, pct));
 
     return layout;
 }
