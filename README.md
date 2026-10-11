@@ -7,7 +7,8 @@ Harmor / Sawer (drive, pumping, big detuned saws).
 
 ![Midnight 84](docs/screenshot.png)
 
-**Listen:** [full demo](demo/midnight84_demo_full.mp3) · [bass lines only](demo/midnight84_demo_bass_only.mp3)
+**Listen:** [full demo](demo/midnight84_demo_full.mp3) · [bass lines only](demo/midnight84_demo_bass_only.mp3) ·
+[Crimson Overdrive lead solo](demo/midnight84_lead_solo.mp3) · [lead with band](demo/midnight84_lead_with_band.mp3)
 (rendered offline from the plugin itself with `tests/DemoSong.cpp`; the drums in the full mix are simple synthesized placeholders)
 
 ## Features
@@ -30,7 +31,7 @@ Harmor / Sawer (drive, pumping, big detuned saws).
   - **Reverb**
   - **Pump**: tempo-synced sidechain-style ducking, for that pumping darksynth groove
 - **Mod wheel** adds vibrato and filter wobble. The **sustain pedal** is supported.
-- **15 factory presets**, also exposed as host programs, so they show up in FL Studio's preset menu.
+- **16 factory presets**, also exposed as host programs, so they show up in FL Studio's preset menu.
   You can **save and load** your own sounds as `.m84` files (stored by default in `Documents/Midnight 84/Presets`).
 - **Resizable UI** that keeps its aspect ratio (drag the bottom-right corner).
 
@@ -47,6 +48,7 @@ Harmor / Sawer (drive, pumping, big detuned saws).
 | Pulse Wobble | Tempo-synced 1/8 filter wobble with folded drive |
 | Night Drive Pluck | Poly pluck with chorus, dotted-8th delay and reverb |
 | Hellfire Arp | Snappy arp pluck with delay and pump |
+| Crimson Overdrive | Bright, crunchy Perturbator-style solo lead: detuned saws, driven ladder + hard clip, legato glide |
 | Neon Lead | 7-voice supersaw lead with vibrato and delay |
 | VHS Pad | Slow, warbly, chorused pad |
 | Synth Brass 84 | 80s brass swell |
@@ -123,5 +125,5 @@ Source/
   Components.*      knobs, selectors, scope, preset bar
   PluginEditor.*    UI layout and background art
 tests/RenderTest.cpp  offline render of every preset (cmake -DM84_BUILD_TESTS=ON)
-tests/DemoSong.cpp    renders the demo track in demo/
+tests/DemoSong.cpp    renders the demo tracks in demo/ (pass "lead" for the lead solo)
 ```

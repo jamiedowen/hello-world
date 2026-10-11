@@ -140,6 +140,22 @@ const std::vector<Preset>& factoryPresets()
             { "aA", 0.005f }, { "aS", 0.85f }, { "aR", 0.4f },
             { "chMix", 0.45f }, { "pumpRate", 1 }, { "pumpAmt", 0.6f }, { "revMix", 0.3f },
             { "voiceMode", 0 }, { "polyphony", 12 } } },
+
+        { "Crimson Overdrive", {
+            { "osc1Wave", 2 }, { "osc1Level", 0.8f }, { "osc1Unison", 5 }, { "osc1Detune", 0.32f },
+            { "osc2Wave", 2 }, { "osc2Level", 0.35f }, { "osc2Oct", 1 }, { "osc2Fine", 6 },
+            { "osc3Wave", 3 }, { "osc3Level", 0.3f }, { "osc3PW", 0.3f }, { "osc3Fine", -9 },
+            { "spread", 0.75f },
+            { "cutoff", 7000 }, { "res", 0.22f }, { "fltDrive", 0.75f }, { "fltEnv", 0.2f }, { "fltKey", 0.5f },
+            { "fA", 0.0f }, { "fD", 0.45f }, { "fS", 0.55f }, { "fR", 0.3f },
+            { "aA", 0.004f }, { "aD", 0.5f }, { "aS", 1.0f }, { "aR", 0.28f }, { "ampVel", 0.2f },
+            { "lfoWave", 0 }, { "lfoRate", 5.6f }, { "lfoPitch", 0.11f },
+            { "drvType", 1 }, { "drvAmt", 0.52f }, { "drvTone", 0.86f }, { "drvMix", 0.85f },
+            { "chMix", 0.2f }, { "chDepth", 0.35f },
+            { "dlyTime", 4 }, { "dlyFb", 0.42f }, { "dlyTone", 0.55f }, { "dlyMix", 0.26f },
+            { "revMix", 0.3f }, { "revSize", 0.82f }, { "revDamp", 0.4f },
+            { "voiceMode", 2 }, { "glide", 0.055f }, { "bendRange", 2 }, { "analog", 0.35f },
+            { "master", -7.0f } } },
     };
     return presets;
 }

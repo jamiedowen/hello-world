@@ -1,7 +1,7 @@
 // Renders a short demo track using the real plugin engine: eight 4-bar sections of
 // dark bass lines (plus pads / arps / leads and a simple synthesized drum kit for context).
-// Usage: Midnight84DemoSong <outputDir>
-// Writes demo_full.wav (everything) and demo_bass_only.wav (bass layers only, no drums).
+// Usage: Midnight84DemoSong <outputDir> [lead]
+// Default writes demo_full.wav and demo_bass_only.wav; "lead" writes lead_with_band.wav and lead_solo.wav.
 #include <juce_audio_formats/juce_audio_formats.h>
 #include "../Source/PluginProcessor.h"
 #include "../Source/Presets.h"
@@ -23,7 +23,8 @@ struct Layer
     juce::String preset;
     std::vector<Event> events;
     float gain = 1.0f;
-    bool isBass = false;
+    bool inStem = false;                          // also rendered into the isolated stem file
+    std::vector<std::pair<double, float>> bends;  // (beat, -1..1) pitch-wheel moves
 };
 
 enum class Drums { none, fourFloor, halftime };
@@ -32,6 +33,7 @@ struct Section
 {
     std::vector<Layer> layers;
     Drums drums = Drums::fourFloor;
+    int bars = 4;
 };
 
 // One bar of 16th-note steps (offsets from root, R = rest, T = tie), repeated per root.
@@ -123,6 +125,12 @@ void renderLayer (const Layer& layer, int64_t startSample, int lengthSamples, ju
             const int off = (int) (beatsToSeconds (e.beat + e.length) * sr);
             if (on >= pos && on < pos + n)   midi.addEvent (juce::MidiMessage::noteOn (1, e.note, e.vel), on - pos);
             if (off >= pos && off < pos + n) midi.addEvent (juce::MidiMessage::noteOff (1, e.note), off - pos);
+        }
+        for (const auto& [beat, value] : layer.bends)
+        {
+            const int at = (int) (beatsToSeconds (beat) * sr);
+            if (at >= pos && at < pos + n)
+                midi.addEvent (juce::MidiMessage::pitchWheel (1, juce::jlimit (0, 16383, 8192 + (int) (value * 8191.0f))), at - pos);
         }
         transport.sample = startSample + pos;
         proc.processBlock (buf, midi);
@@ -260,6 +268,53 @@ std::vector<Section> buildSong()
     return song;
 }
 
+
+// Perturbator-style solo: legato lead over Am - F - C - G (x2), with scoops and a bend at the end.
+std::vector<Section> buildLeadSong()
+{
+    struct N { int note; double beats; bool slur; bool scoop; };
+    const std::vector<N> line {
+        // Statement
+        { 76, 1.5, false, true }, { 74, 0.5, true, false }, { 72, 1.0, false, false }, { 69, 1.0, false, false },
+        { 72, 1.5, false, false }, { 74, 0.5, true, false }, { 76, 2.0, false, true },
+        { 79, 1.5, false, true }, { 77, 0.5, true, false }, { 76, 1.0, false, false }, { 72, 1.0, false, false },
+        { 74, 3.0, false, true }, { -1, 1.0, false, false },
+        // Climb
+        { 81, 1.5, false, true }, { 79, 0.5, true, false }, { 76, 1.0, false, false }, { 81, 1.0, false, false },
+        { 84, 1.5, false, true }, { 81, 0.5, true, false }, { 77, 1.0, false, false }, { 81, 1.0, false, false },
+        { 79, 0.25, true, false }, { 81, 0.25, true, false }, { 79, 0.25, true, false }, { 76, 0.25, true, false },
+        { 74, 0.25, true, false }, { 76, 0.25, true, false }, { 79, 0.25, true, false }, { 81, 0.25, true, false },
+        { 84, 2.0, false, false },
+        { 83, 4.0, false, true },
+    };
+
+    Layer lead { "Crimson Overdrive", {}, 1.0f, true, {} };
+    double t = 0.0;
+    for (const auto& n : line)
+    {
+        if (n.note >= 0)
+        {
+            lead.events.push_back ({ t, n.beats * (n.slur ? 1.06 : 0.92), n.note, n.slur ? 0.8f : 0.95f });
+            if (n.scoop) // start a semitone flat and bend up into the note
+                for (int i = 0; i <= 10; ++i)
+                    lead.bends.push_back ({ std::max (0.0, t - 0.01) + i * 0.012, -0.5f * (1.0f - (float) i / 10.0f) });
+        }
+        t += n.beats;
+    }
+    // Final note: hold, then bend up a whole step.
+    const double last = t - 4.0;
+    for (int i = 0; i <= 24; ++i)
+        lead.bends.push_back ({ last + 2.0 + i * 0.04, (float) i / 24.0f });
+    lead.bends.push_back ({ t + 1.5, 0.0f });
+
+    const std::vector<int> roots { 33, 29, 36, 31, 33, 29, 36, 31 };
+    Layer bass { "Perturbed Bass", stepLine (roots, { 0, 0, 12, 0, 0, 0, 12, 0, 0, 0, 12, 0, 0, 12, 0, 12 }, 0.8), 0.75f, false, {} };
+    Layer pad { "VHS Pad", chords ({ { 57, 60, 64 }, { 53, 57, 60 }, { 55, 60, 64 }, { 55, 59, 62 },
+                                     { 57, 60, 64 }, { 53, 57, 60 }, { 55, 60, 64 }, { 55, 59, 62 } }, 4.0), 0.3f, false, {} };
+
+    return { { { lead, bass, pad }, Drums::fourFloor, 8 } };
+}
+
 void writeWav (const juce::File& file, juce::AudioBuffer<float> buffer)
 {
     // Gentle soft-clip then normalise to -1 dBFS.
@@ -289,32 +344,35 @@ int main (int argc, char* argv[])
     const juce::File outDir (argc > 1 ? juce::String (argv[1]) : juce::File::getCurrentWorkingDirectory().getFullPathName());
     outDir.createDirectory();
 
-    const auto song = buildSong();
-    const int barsPerSection = 4;
-    const int sectionLen = (int) (beatsToSeconds (barsPerSection * 4.0) * sr);
-    const int tail = (int) (2.5 * sr);
-    const int total = sectionLen * (int) song.size() + tail;
+    const bool leadMode = argc > 2 && juce::String (argv[2]) == "lead";
+    const auto song = leadMode ? buildLeadSong() : buildSong();
+    const int tail = (int) (3.0 * sr);
+    int total = tail;
+    for (const auto& sec : song)
+        total += (int) (beatsToSeconds (sec.bars * 4.0) * sr);
 
-    juce::AudioBuffer<float> full (2, total), bassOnly (2, total);
+    juce::AudioBuffer<float> full (2, total), stem (2, total);
     full.clear();
-    bassOnly.clear();
+    stem.clear();
     juce::Random rng (1984);
 
+    int64_t start = 0;
     for (size_t s = 0; s < song.size(); ++s)
     {
-        const int64_t start = (int64_t) s * sectionLen;
+        const int sectionLen = (int) (beatsToSeconds (song[s].bars * 4.0) * sr);
         for (const auto& layer : song[s].layers)
         {
             std::printf ("section %d: %s\n", (int) s + 1, layer.preset.toRawUTF8());
             renderLayer (layer, start, sectionLen + tail, full);
-            if (layer.isBass)
-                renderLayer (layer, start, sectionLen + tail, bassOnly);
+            if (layer.inStem)
+                renderLayer (layer, start, sectionLen + tail, stem);
         }
-        renderDrums (song[s].drums, start, barsPerSection, full, rng);
+        renderDrums (song[s].drums, start, song[s].bars, full, rng);
+        start += sectionLen;
     }
 
-    writeWav (outDir.getChildFile ("demo_full.wav"), full);
-    writeWav (outDir.getChildFile ("demo_bass_only.wav"), bassOnly);
+    writeWav (outDir.getChildFile (leadMode ? "lead_with_band.wav" : "demo_full.wav"), full);
+    writeWav (outDir.getChildFile (leadMode ? "lead_solo.wav" : "demo_bass_only.wav"), stem);
     std::printf ("done: %.1f s\n", total / sr);
     return 0;
 }
