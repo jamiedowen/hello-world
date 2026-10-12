@@ -233,8 +233,23 @@ int main (int argc, char* argv[])
         ok = ok && gapB < gapA - 6.0f;
     }
 
-    // Editor screenshot.
-    proc.setCurrentProgram (2);
+    // Editor screenshot: optional argv[2] names the preset; a held chord fills the scope first.
+    {
+        int prog = 2;
+        if (argc > 2)
+            for (int i = 0; i < proc.getNumPrograms(); ++i)
+                if (proc.getProgramName (i) == juce::String (argv[2])) prog = i;
+        proc.setCurrentProgram (prog);
+        proc.prepareToPlay (sr, block);
+        juce::AudioBuffer<float> b (2, block);
+        for (int pos = 0; pos < (int) (0.6 * sr); pos += block)
+        {
+            juce::MidiBuffer midi;
+            if (pos == 0)
+                for (int n : { 41, 53 }) midi.addEvent (juce::MidiMessage::noteOn (1, n, 1.0f), 0);
+            proc.processBlock (b, midi);
+        }
+    }
     {
         std::unique_ptr<juce::AudioProcessorEditor> editor (proc.createEditor());
         editor->setSize (1200, 900);
