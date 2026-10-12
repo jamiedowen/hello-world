@@ -81,3 +81,66 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ matrix.artifact }}.zip
+
+  # Android: standalone app (APK) built from the same Source/ via a Projucer project,
+  # because JUCE's CMake API doesn't support Android.
+  android:
+    name: Android
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install dependencies for Projucer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfreetype-dev libfontconfig1-dev libcurl4-openssl-dev libx11-dev \
+            libxrandr-dev libxinerama-dev libxcursor-dev libxext-dev libasound2-dev xvfb
+
+      - name: Get JUCE 8.0.4
+        run: git clone --depth 1 --branch 8.0.4 https://github.com/juce-framework/JUCE.git JUCE
+
+      - name: Build Projucer
+        run: make -C JUCE/extras/Projucer/Builds/LinuxMakefile CONFIG=Release -j4
+
+      - name: Generate the Android Studio project
+        run: xvfb-run -a JUCE/extras/Projucer/Builds/LinuxMakefile/build/Projucer --resave android/Midnight84.jucer
+
+      - name: Install the NDK and CMake versions JUCE expects
+        run: yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "ndk;26.2.11394342" "cmake;3.22.1" > /dev/null
+
+      - name: Signing key
+        run: |
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkeypair -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey \
+              -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+      - name: Build APK
+        working-directory: android/Builds/Android
+        run: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease_Release
+
+      - name: Package
+        run: |
+          mkdir -p dist
+          cp "$(find android/Builds/Android/app/build/outputs/apk -name '*.apk' | head -1)" dist/Midnight84.apk
+          ls -la dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Midnight84-Android-APK
+          path: dist
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/Midnight84.apk

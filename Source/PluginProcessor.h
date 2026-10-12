@@ -1,6 +1,7 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <juce_audio_basics/juce_audio_basics.h>
 #include <array>
 #include <atomic>
 #include "Arpeggiator.h"
@@ -70,6 +71,7 @@ public:
 
     juce::AudioProcessorValueTreeState apvts;
     ScopeBuffer scope;
+    juce::MidiKeyboardState keyboardState; // on-screen keyboard (standalone / mobile)
 
 private:
     struct ParamPointers

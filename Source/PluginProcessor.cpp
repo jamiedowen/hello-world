@@ -156,6 +156,9 @@ void Midnight84AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     }
 
     engine.setHighQuality (pp.hq->load (std::memory_order_relaxed) > 0.5f);
+    // Notes played on the on-screen keyboard join the host's MIDI.
+    keyboardState.processNextMidiBuffer (midi, 0, buffer.getNumSamples(), true);
+
     m84::ArpParams ap;
     ap.on = pp.arpOn->load (std::memory_order_relaxed) > 0.5f;
     ap.mode = juce::roundToInt (pp.arpMode->load (std::memory_order_relaxed));

@@ -6,3 +6,8 @@ cmake-build-*/
 .idea/
 *.wav
 .DS_Store
+
+# Android build: JUCE checkout and generated Projucer output
+/JUCE
+android/Builds/
+android/JuceLibraryCode/

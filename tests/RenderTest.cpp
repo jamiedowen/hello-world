@@ -2,6 +2,7 @@
 // and saves a screenshot of the editor. Usage: Midnight84RenderTest <outputDir>
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_gui_basics/juce_gui_basics.h>
+#include "../Source/PluginEditor.h"
 #include "../Source/PluginProcessor.h"
 #include "../Source/Presets.h"
 
@@ -231,6 +232,42 @@ int main (int argc, char* argv[])
         const float gapB = win (b, 0.0, 0.3) - win (b, 1.4, 1.9);
         std::printf ("squash: loud-to-quiet gap %.1f dB -> %.1f dB  %s\n", gapA, gapB, gapB < gapA - 6.0f ? "ok" : "NO EFFECT!");
         ok = ok && gapB < gapA - 6.0f;
+    }
+
+    {
+        // On-screen keyboard (mobile / standalone): a key press must reach the synth.
+        Midnight84AudioProcessor kp;
+        kp.setPlayConfigDetails (0, 2, sr, block);
+        kp.prepareToPlay (sr, block);
+        kp.keyboardState.noteOn (1, 48, 0.9f);
+        juce::AudioBuffer<float> b (2, block);
+        float peak = 0.0f;
+        for (int pos = 0; pos < (int) (0.3 * sr); pos += block)
+        {
+            juce::MidiBuffer midi;
+            kp.processBlock (b, midi);
+            peak = std::max (peak, b.getMagnitude (0, block));
+        }
+        kp.keyboardState.allNotesOff (1);
+        std::printf ("on-screen keyboard: peak %.2f dBFS  %s\n", juce::Decibels::gainToDecibels (peak), peak > 0.01f ? "ok" : "SILENT!");
+        ok = ok && peak > 0.01f;
+    }
+
+    {
+        // Mobile layout screenshots, one per tab page, at a phone-in-landscape size.
+        Midnight84AudioProcessor mp;
+        mp.setCurrentProgram (2);
+        Midnight84AudioProcessorEditor ed (mp, true);
+        ed.setSize (844, 390);
+        for (int page = 0; page < 4; ++page)
+        {
+            ed.showPage (page);
+            auto img = ed.createComponentSnapshot (ed.getLocalBounds(), true, 2.0f);
+            auto file = outDir.getChildFile ("mobile_page" + juce::String (page + 1) + ".png");
+            file.deleteFile();
+            if (auto stream = std::unique_ptr<juce::FileOutputStream> (file.createOutputStream()))
+                juce::PNGImageFormat().writeImageToStream (img, *stream);
+        }
     }
 
     // Editor screenshot: optional argv[2] names the preset; a held chord fills the scope first.

@@ -413,18 +413,84 @@ void MainContent::paintPanel (juce::Graphics& g, const Panel& p)
 } // namespace m84
 
 //==============================================================================
-Midnight84AudioProcessorEditor::Midnight84AudioProcessorEditor (Midnight84AudioProcessor& p)
-    : AudioProcessorEditor (&p), content (p)
+namespace
+{
+    // Regions of MainContent shown as pages on mobile (they line up with the panel rows).
+    struct Page { const char* name; juce::Rectangle<int> area; };
+    const Page mobilePages[] = {
+        { "OSC",     { 0, 104, 1200, 200 } },
+        { "FILTER",  { 0, 302, 1200, 210 } },
+        { "FX",      { 0, 510, 1200, 190 } },
+        { "ARP/MOD", { 0, 698, 1200, 160 } },
+    };
+    const juce::Rectangle<int> headerArea { 0, 0, 1200, 100 };
+
+    // Shows exactly `area` of a MainContent, scaled to fit inside `space` and centred there.
+    // The holder is sized to the scaled area, so it clips away the neighbouring rows.
+    void fitRegion (juce::Component& holder, juce::Component& content, juce::Rectangle<int> area, juce::Rectangle<int> space)
+    {
+        const float s = std::min ((float) space.getWidth() / (float) area.getWidth(),
+                                  (float) space.getHeight() / (float) area.getHeight());
+        holder.setBounds (space.withSizeKeepingCentre (juce::roundToInt ((float) area.getWidth() * s),
+                                                       juce::roundToInt ((float) area.getHeight() * s)));
+        content.setBounds (0, 0, m84::MainContent::baseWidth, m84::MainContent::baseHeight);
+        content.setTransform (juce::AffineTransform::translation ((float) -area.getX(), (float) -area.getY()).scaled (s));
+    }
+}
+
+Midnight84AudioProcessorEditor::Midnight84AudioProcessorEditor (Midnight84AudioProcessor& p, bool mobileLayout)
+    : AudioProcessorEditor (&p), processor (p), mobile (mobileLayout), content (p)
 {
     setLookAndFeel (&lookAndFeel);
-    addAndMakeVisible (content);
 
-    constexpr double aspect = (double) m84::MainContent::baseWidth / (double) m84::MainContent::baseHeight;
-    setResizable (true, true);
-    setResizeLimits (840, 630, 1800, 1350);
-    if (auto* c = getConstrainer())
-        c->setFixedAspectRatio (aspect);
-    setSize (m84::MainContent::baseWidth, m84::MainContent::baseHeight);
+    if (! mobile)
+    {
+        addAndMakeVisible (content);
+        constexpr double aspect = (double) m84::MainContent::baseWidth / (double) m84::MainContent::baseHeight;
+        setResizable (true, true);
+        setResizeLimits (840, 630, 1800, 1350);
+        if (auto* c = getConstrainer())
+            c->setFixedAspectRatio (aspect);
+        setSize (m84::MainContent::baseWidth, m84::MainContent::baseHeight);
+        return;
+    }
+
+    // Mobile: header strip, tab bar, one page of controls, and a playable keyboard.
+    headerContent = std::make_unique<m84::MainContent> (p);
+    headerHolder.addAndMakeVisible (*headerContent);
+    pageHolder.addAndMakeVisible (content);
+    addAndMakeVisible (headerHolder);
+    addAndMakeVisible (pageHolder);
+
+    for (int i = 0; i < (int) std::size (mobilePages); ++i)
+    {
+        auto* b = tabs.add (new juce::TextButton (mobilePages[i].name));
+        b->setClickingTogglesState (true);
+        b->setRadioGroupId (84);
+        b->onClick = [this, i] { showPage (i); };
+        addAndMakeVisible (b);
+    }
+    tabs[0]->setToggleState (true, juce::dontSendNotification);
+
+    keyboard = std::make_unique<m84::NeonKeyboard> (p.keyboardState, juce::MidiKeyboardComponent::horizontalKeyboard);
+    keyboard->setScrollButtonsVisible (false);
+    keyboard->setOctaveForMiddleC (4); // C4 = middle C, like FL Studio
+    keyboard->setAvailableRange (lowestKey, lowestKey + 24);
+    addAndMakeVisible (*keyboard);
+
+    octDown.onClick = [this] { shiftOctave (-1); };
+    octUp.onClick = [this] { shiftOctave (1); };
+    addAndMakeVisible (octDown);
+    addAndMakeVisible (octUp);
+
+    setResizable (true, false);
+    setResizeLimits (320, 200, 8192, 8192);
+   #if JUCE_ANDROID || JUCE_IOS
+    if (auto* d = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay())
+        setSize (d->userArea.getWidth(), d->userArea.getHeight());
+    else
+   #endif
+        setSize (844, 390); // a typical phone in landscape
 }
 
 Midnight84AudioProcessorEditor::~Midnight84AudioProcessorEditor()
@@ -435,11 +501,112 @@ Midnight84AudioProcessorEditor::~Midnight84AudioProcessorEditor()
 void Midnight84AudioProcessorEditor::paint (juce::Graphics& g)
 {
     g.fillAll (m84::Palette::bgTop);
+    if (mobile)
+    {
+        // A neon rule above the keyboard.
+        g.setGradientFill (juce::ColourGradient (m84::Palette::magenta, 0.0f, 0.0f, m84::Palette::cyan, (float) getWidth(), 0.0f, false));
+        g.fillRect (0, keyboard->getY() - 2, getWidth(), 2);
+    }
 }
 
 void Midnight84AudioProcessorEditor::resized()
 {
+    if (mobile)
+    {
+        resizedMobile();
+        return;
+    }
+
     const float scale = (float) getWidth() / (float) m84::MainContent::baseWidth;
     content.setBounds (0, 0, m84::MainContent::baseWidth, m84::MainContent::baseHeight);
     content.setTransform (juce::AffineTransform::scale (scale));
+}
+
+void Midnight84AudioProcessorEditor::resizedMobile()
+{
+    auto r = getLocalBounds();
+    const int w = r.getWidth();
+
+    // Header: the logo / preset / scope strip, scaled to the full width.
+    const int headerH = juce::roundToInt ((float) headerArea.getHeight() * (float) w / (float) headerArea.getWidth());
+    fitRegion (headerHolder, *headerContent, headerArea, r.removeFromTop (std::min (headerH, r.getHeight() / 5)));
+
+    // Keyboard takes about a third of the screen, with octave buttons on its left.
+    auto keys = r.removeFromBottom (juce::roundToInt ((float) getHeight() * 0.32f));
+    keys.removeFromTop (4);
+    auto octaveCol = keys.removeFromLeft (std::max (56, w / 14));
+    octUp.setBounds (octaveCol.removeFromTop (octaveCol.getHeight() / 2).reduced (3));
+    octDown.setBounds (octaveCol.reduced (3));
+    keyboard->setBounds (keys);
+    keyboard->setKeyWidth ((float) keys.getWidth() / 15.0f); // two octaves plus the top C
+
+    // Tab bar.
+    auto tabBar = r.removeFromTop (std::max (30, getHeight() / 12)).reduced (4, 3);
+    const int tw = tabBar.getWidth() / tabs.size();
+    for (auto* t : tabs)
+        t->setBounds (tabBar.removeFromLeft (tw).reduced (3, 0));
+
+    pageSpace = r;
+    fitRegion (pageHolder, content, mobilePages[currentPage].area, pageSpace);
+}
+
+void Midnight84AudioProcessorEditor::showPage (int index)
+{
+    currentPage = juce::jlimit (0, (int) std::size (mobilePages) - 1, index);
+    if (auto* t = tabs[currentPage])
+        t->setToggleState (true, juce::dontSendNotification);
+    fitRegion (pageHolder, content, mobilePages[currentPage].area, pageSpace);
+    repaint();
+}
+
+void Midnight84AudioProcessorEditor::shiftOctave (int delta)
+{
+    lowestKey = juce::jlimit (12, 84, lowestKey + delta * 12);
+    if (keyboard != nullptr)
+    {
+        processor.keyboardState.allNotesOff (1);
+        keyboard->setAvailableRange (lowestKey, lowestKey + 24);
+    }
+}
+
+//==============================================================================
+void m84::NeonKeyboard::drawWhiteNote (int note, juce::Graphics& g, juce::Rectangle<float> area, bool isDown, bool,
+                                       juce::Colour, juce::Colour)
+{
+    auto r = area.reduced (1.0f, 0.0f);
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff241238), 0.0f, r.getY(),
+                                             juce::Colour (0xff0e0619), 0.0f, r.getBottom(), false));
+    g.fillRect (r);
+    if (isDown)
+    {
+        g.setGradientFill (juce::ColourGradient (Palette::magenta.withAlpha (0.25f), 0.0f, r.getY(),
+                                                 Palette::magenta.withAlpha (0.85f), 0.0f, r.getBottom(), false));
+        g.fillRect (r);
+    }
+    g.setColour (Palette::magenta.withAlpha (isDown ? 1.0f : 0.45f));
+    g.drawRect (r, 1.0f);
+
+    if (note % 12 == 0)
+    {
+        g.setColour (isDown ? juce::Colours::white : Palette::textDim);
+        g.setFont (synthFont (std::min (13.0f, r.getWidth() * 0.32f)));
+        g.drawText (getWhiteNoteText (note), r.removeFromBottom (r.getHeight() * 0.2f), juce::Justification::centred);
+    }
+}
+
+void m84::NeonKeyboard::drawBlackNote (int, juce::Graphics& g, juce::Rectangle<float> area, bool isDown, bool, juce::Colour)
+{
+    g.setColour (juce::Colour (0xff040207));
+    g.fillRect (area);
+    auto top = area.reduced (area.getWidth() * 0.12f, 0.0f).withTrimmedBottom (area.getHeight() * 0.08f);
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff1b1030), 0.0f, top.getY(),
+                                             juce::Colour (0xff07040c), 0.0f, top.getBottom(), false));
+    g.fillRect (top);
+    if (isDown)
+    {
+        g.setColour (Palette::cyan.withAlpha (0.7f));
+        g.fillRect (top);
+    }
+    g.setColour (Palette::cyan.withAlpha (isDown ? 1.0f : 0.35f));
+    g.drawRect (area, 1.0f);
 }

@@ -1,7 +1,8 @@
 # Midnight 84: project guide for Claude
 
 A polyphonic darkwave / synthwave synth plugin (JUCE 8, C++17, CMake) for **FL Studio on Windows** (VST3).
-It also builds AU and Standalone on macOS, and VST3 and Standalone on Linux. See README.md for the user-facing feature list.
+It also builds AU and Standalone on macOS, and VST3 and Standalone on Linux, plus an **Android app (APK)**.
+The user plays it on Android while away from their PC. Keep both working, and never remove the VST. See README.md for the user-facing feature list.
 
 ## The user and what they want
 - Makes dark, heavy synthwave / darksynth: Perturbator, Carpenter Brut, GosT. Likes Serum, Harmor, Sawer and the Behringer Poly D.
@@ -34,7 +35,18 @@ xvfb-run -a build/Midnight84DemoSong_artefacts/Release/Midnight84DemoSong <outDi
 xvfb-run -a build/Midnight84FullSong_artefacts/Release/Midnight84FullSong <outDir> [stems]
   # "Neon Requiem": an 88-bar arranged track (rendered before the grit and feature updates)
 ```
-Encode demos with `ffmpeg -b:a 256k` into `demo/`. The LTO link is slow (a few minutes).
+Encode demos with `ffmpeg -b:a 256k` into `demo/`.
+
+### Android
+- `android/Midnight84.jucer` is a Projucer project (JUCE's CMake API can't target Android) that compiles the same
+  `../Source` files as a standalone app. **When you add a Source file, add it to the .jucer too.**
+- CI (the `android` job) clones JUCE to `./JUCE`, builds Projucer, runs `--resave`, installs NDK 26.2.11394342 and
+  CMake 3.22.1, then runs `gradlew assembleRelease_Release` (signed with a debug keystore). Artifact: Midnight84-Android-APK.
+- dl.google.com is blocked in the cloud sandbox, so the APK can only be built in CI. Projucer and `--resave` work
+  locally (they need libcurl4-openssl-dev).
+- The mobile UI is `M84_MOBILE_UI` (on for JUCE_ANDROID / JUCE_IOS): header strip, 4 tab pages (each a scaled region of
+  `MainContent`), and a `NeonKeyboard` feeding `processor.keyboardState`. RenderTest writes `mobile_page1..4.png` at
+  844x390, and checks that the on-screen keyboard produces sound. The LTO link is slow (a few minutes).
 
 ## Architecture (Source/)
 - `Parameters.*`: every parameter ID and the layout. **Add new parameters at the end** and never rename IDs,

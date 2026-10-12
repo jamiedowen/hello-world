@@ -131,10 +131,12 @@ void SynthwaveLookAndFeel::drawButtonBackground (juce::Graphics& g, juce::Button
                                                  bool highlighted, bool down)
 {
     auto r = b.getLocalBounds().toFloat().reduced (0.5f);
-    g.setColour (juce::Colour (0xff120822).brighter (down ? 0.2f : (highlighted ? 0.1f : 0.0f)));
+    const bool on = b.getToggleState();
+    g.setColour (on ? Palette::magenta.withAlpha (0.35f)
+                    : juce::Colour (0xff120822).brighter (down ? 0.2f : (highlighted ? 0.1f : 0.0f)));
     g.fillRoundedRectangle (r, 4.0f);
-    g.setColour (Palette::cyan.withAlpha (highlighted ? 0.9f : 0.45f));
-    g.drawRoundedRectangle (r, 4.0f, 1.0f);
+    g.setColour ((on ? Palette::magenta : Palette::cyan).withAlpha (on || highlighted ? 0.95f : 0.45f));
+    g.drawRoundedRectangle (r, 4.0f, on ? 1.5f : 1.0f);
 }
 
 juce::Font SynthwaveLookAndFeel::getTextButtonFont (juce::TextButton&, int buttonHeight)

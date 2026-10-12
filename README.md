@@ -109,6 +109,22 @@ cmake --build build --config Release
 
 The output goes to `build/Midnight84_artefacts/Release/` (`VST3/`, `Standalone/`, and `AU/` on macOS).
 
+## Android app
+
+Midnight 84 also runs as a standalone **Android app**, with the same engine and presets. It has a touch layout:
+tab pages (OSC / FILTER / FX / ARP-MOD) and a two-octave neon keyboard with octave buttons.
+USB and Bluetooth MIDI keyboards are picked up automatically.
+
+![Midnight 84 on Android](docs/screenshot_android.png)
+
+1. On your phone, open the repository's **Actions** tab, then the latest **Build Midnight 84** run, and download
+   **Midnight84-Android-APK** (sign in to GitHub first). Pushing a `v*` tag also attaches `Midnight84.apk` to a release.
+2. Unzip it and tap `Midnight84.apk`. Android asks you to allow installs from that app (Files / Chrome) the first time.
+3. Open **Midnight 84** and play. It runs in landscape. Use headphones or a speaker for the bass.
+
+The app is built from `android/Midnight84.jucer` (Projucer), because JUCE's CMake setup doesn't target Android.
+The VST3 / AU builds still come from `CMakeLists.txt`.
+
 ## Installing in FL Studio (Windows)
 
 1. Copy the whole `Midnight 84.vst3` folder to `C:\Program Files\Common Files\VST3\`.
