@@ -37,7 +37,7 @@
     <ANDROIDSTUDIO targetFolder="Builds/Android" androidMinimumSDK="26" androidTargetSDK="34"
                    androidScreenOrientation="landscape" microphonePermissionNeeded="0"
                    androidBluetoothConnectNeeded="1" androidBluetoothScanNeeded="1"
-                   androidVersionCode="1">
+                   androidVersionCode="1" extraCompilerFlags="-include AppConfig.h">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="Midnight84"
                        androidArchitectures="arm64-v8a"/>
