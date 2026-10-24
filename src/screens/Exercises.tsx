@@ -137,14 +137,14 @@ export function ExerciseDetailScreen({ id }: { id: string }) {
               <div className="small muted" style={{ marginBottom: 6 }}>
                 Primary
               </div>
-              <span className="tag accent">{MUSCLE_LABELS[ex.primary]}</span>
+              <span className="tag primary">{MUSCLE_LABELS[ex.primary]}</span>
               {ex.secondary.length > 0 && (
                 <>
                   <div className="small muted" style={{ margin: '6px 0' }}>
                     Secondary
                   </div>
                   {ex.secondary.map((x) => (
-                    <span key={x} className="tag">
+                    <span key={x} className="tag secondary">
                       {MUSCLE_LABELS[x]}
                     </span>
                   ))}
@@ -152,7 +152,7 @@ export function ExerciseDetailScreen({ id }: { id: string }) {
               )}
               {ex.primary !== 'cardio' && (
                 <div style={{ marginTop: 12 }}>
-                  <BodyMap intensity={intensity} height={180} />
+                  <BodyMap intensity={intensity} height={260} />
                 </div>
               )}
             </div>

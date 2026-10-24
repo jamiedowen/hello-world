@@ -42,9 +42,6 @@ export function BarChart({ data, format }: { data: { label: string; value: numbe
             </g>
           );
         })}
-        <text x={W - PAD.r} y={PAD.t - 6} fontSize="10" fill="var(--text-3)" textAnchor="end">
-          {format(max)}
-        </text>
       </svg>
     </div>
   );
@@ -94,9 +91,6 @@ export function LineChart({ data, format }: { data: { label: string; value: numb
         </text>
         <text x={W - PAD.r} y={H - 6} fontSize="10" fill="var(--text-3)" textAnchor="end">
           {data[data.length - 1].label}
-        </text>
-        <text x={W - PAD.r} y={PAD.t - 8} fontSize="10" fill="var(--text-3)" textAnchor="end">
-          {format(max)}
         </text>
       </svg>
     </div>

@@ -281,7 +281,8 @@ select {
 
 .stats-row {
   display: flex;
-  gap: 20px;
+  flex-wrap: wrap;
+  gap: 8px 20px;
   margin: 10px 0;
 }
 .stat .label {
@@ -292,6 +293,7 @@ select {
   font-size: 15px;
   font-weight: 600;
   margin-top: 2px;
+  white-space: nowrap;
 }
 .stat.big .value {
   font-size: 20px;
@@ -508,7 +510,8 @@ select {
 /* ───── Active workout ───── */
 .wo-stats {
   display: flex;
-  gap: 24px;
+  flex-wrap: wrap;
+  gap: 4px 24px;
   padding: 12px 16px;
   border-bottom: 1px solid var(--border);
 }
@@ -649,7 +652,7 @@ select {
   background: var(--green);
   color: #fff;
 }
-.add-set {
+.btn.add-set {
   margin: 8px 16px 4px;
   width: calc(100% - 32px);
 }
@@ -922,4 +925,12 @@ ol.steps li::before {
   border-top: 1px solid var(--border);
   background: var(--bg);
   flex-shrink: 0;
+}
+.tag.primary {
+  background: rgba(229, 57, 47, 0.18);
+  color: #ff6b62;
+}
+.tag.secondary {
+  background: rgba(245, 185, 55, 0.16);
+  color: var(--yellow);
 }
