@@ -1,0 +1,260 @@
+import { useState } from 'react';
+import { BackButton, Confirm, Sheet, SheetItem, TopBar } from '../components/ui';
+import { Icon } from '../components/Icon';
+import { ExercisePicker } from '../components/ExercisePicker';
+import { REST_OPTIONS, SetTable, fillFromPrevious } from '../components/SetTable';
+import { fmtClock, fmtDuration, fmtWeight } from '../lib/format';
+import { tap } from '../lib/native';
+import { pop, push, removeRoutes } from '../lib/nav';
+import { getExercise, useStore } from '../lib/store';
+import { completedSets, workoutVolume } from '../lib/stats';
+import { useNow } from '../lib/useNow';
+import {
+  addExercisesToActive,
+  adjustRest,
+  discardWorkout,
+  lastPerformance,
+  makeWorkoutExercise,
+  newSet,
+  startRest,
+  stopRest,
+  updateActive,
+} from '../lib/workout';
+import type { WorkoutExercise, WorkoutSet } from '../types';
+
+export function ActiveWorkoutScreen() {
+  const active = useStore((s) => s.active);
+  const settings = useStore((s) => s.settings);
+  const rest = useStore((s) => s.rest);
+  const now = useNow();
+  const [picker, setPicker] = useState<null | { replace?: string }>(null);
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [restFor, setRestFor] = useState<string | null>(null);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [manualRest, setManualRest] = useState(false);
+
+  if (!active) return null;
+
+  const updateExercise = (id: string, fn: (we: WorkoutExercise) => WorkoutExercise) =>
+    updateActive((a) => ({ ...a, exercises: a.exercises.map((we) => (we.id === id ? fn(we) : we)) }));
+
+  const updateSet = (weId: string, i: number, patch: Partial<WorkoutSet>) =>
+    updateExercise(weId, (we) => ({ ...we, sets: we.sets.map((s, j) => (j === i ? { ...s, ...patch } : s)) }));
+
+  const toggleSet = (we: WorkoutExercise, i: number, prev?: WorkoutSet) => {
+    const ex = getExercise(we.exerciseId);
+    const set = we.sets[i];
+    if (!ex) return;
+    tap();
+    if (set.done) return updateSet(we.id, i, { done: false });
+    updateSet(we.id, i, { ...fillFromPrevious(set, prev, ex.type, settings), done: true });
+    if (we.restSeconds > 0) startRest(we.restSeconds, we.exerciseId);
+  };
+
+  const move = (id: string, dir: -1 | 1) =>
+    updateActive((a) => {
+      const i = a.exercises.findIndex((e) => e.id === id);
+      const j = i + dir;
+      if (j < 0 || j >= a.exercises.length) return a;
+      const list = [...a.exercises];
+      [list[i], list[j]] = [list[j], list[i]];
+      return { ...a, exercises: list };
+    });
+
+  const elapsed = (now - active.startedAt) / 1000;
+  const restLeft = rest ? Math.max(0, (rest.endsAt - now) / 1000) : 0;
+
+  return (
+    <div className="screen">
+      <TopBar
+        left={<BackButton icon="down" onClick={pop} />}
+        title="Log Workout"
+        right={
+          <>
+            <button className="icon-btn" onClick={() => setManualRest(true)} aria-label="Rest timer">
+              <Icon name="timer" />
+            </button>
+            <button className="btn primary small" onClick={() => push({ name: 'finish' })}>
+              Finish
+            </button>
+          </>
+        }
+      />
+      <div className="wo-stats">
+        <div className="stat">
+          <div className="label">Duration</div>
+          <div className="value" style={{ color: 'var(--accent)' }}>
+            {fmtClock(elapsed)}
+          </div>
+        </div>
+        <div className="stat">
+          <div className="label">Volume</div>
+          <div className="value">{fmtWeight(workoutVolume(active), settings, 0)}</div>
+        </div>
+        <div className="stat">
+          <div className="label">Sets</div>
+          <div className="value">{completedSets(active)}</div>
+        </div>
+      </div>
+
+      <div className="content flush" style={{ paddingTop: 0 }}>
+        {active.exercises.length === 0 && (
+          <div className="empty">
+            <div className="big">🏋️</div>
+            <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Get started</div>
+            Add an exercise to start your workout
+          </div>
+        )}
+
+        {active.exercises.map((we) => {
+          const ex = getExercise(we.exerciseId);
+          if (!ex) return null;
+          const prev = lastPerformance(we.exerciseId)?.sets;
+          return (
+            <section key={we.id} className="wo-exercise">
+              <div className="head">
+                <button className="name" onClick={() => push({ name: 'exercise', id: ex.id })}>
+                  {ex.name}
+                </button>
+                <button className="icon-btn" onClick={() => setMenuFor(we.id)} aria-label="Exercise options">
+                  <Icon name="more" />
+                </button>
+              </div>
+              <input
+                className="wo-notes"
+                placeholder="Add notes here..."
+                value={we.notes ?? ''}
+                onChange={(e) => updateExercise(we.id, (x) => ({ ...x, notes: e.target.value }))}
+              />
+              <button className="rest-chip" onClick={() => setRestFor(we.id)}>
+                <Icon name="timer" size={16} /> Rest Timer: {we.restSeconds ? fmtDuration(we.restSeconds) : 'OFF'}
+              </button>
+              <SetTable
+                type={ex.type}
+                sets={we.sets}
+                settings={settings}
+                previous={prev}
+                onChange={(i, patch) => updateSet(we.id, i, patch)}
+                onToggle={(i) => toggleSet(we, i, prev?.[i])}
+                onRemove={(i) => updateExercise(we.id, (x) => ({ ...x, sets: x.sets.filter((_, j) => j !== i) }))}
+              />
+              <button
+                className="btn block add-set"
+                onClick={() =>
+                  updateExercise(we.id, (x) => {
+                    const last = x.sets[x.sets.length - 1];
+                    return { ...x, sets: [...x.sets, newSet(last && { weight: last.weight, reps: last.reps, distance: last.distance, duration: last.duration })] };
+                  })
+                }
+              >
+                <Icon name="plus" size={18} /> Add Set
+              </button>
+            </section>
+          );
+        })}
+
+        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <button className="btn primary block" onClick={() => setPicker({})}>
+            <Icon name="plus" size={18} /> Add Exercise
+          </button>
+          <button className="btn block danger" onClick={() => setConfirmDiscard(true)}>
+            Discard Workout
+          </button>
+        </div>
+      </div>
+
+      {rest && (
+        <div className="rest-bar">
+          <div className="progress" style={{ width: `${(restLeft / rest.total) * 100}%` }} />
+          <button className="btn small" onClick={() => adjustRest(-15)}>
+            -15
+          </button>
+          <div className="rest-time">{fmtClock(restLeft)}</div>
+          <button className="btn small" onClick={() => adjustRest(15)}>
+            +15
+          </button>
+          <button className="btn small primary" onClick={stopRest}>
+            Skip
+          </button>
+        </div>
+      )}
+
+      {picker && (
+        <ExercisePicker
+          single={!!picker.replace}
+          title={picker.replace ? 'Replace Exercise' : 'Add Exercise'}
+          onClose={() => setPicker(null)}
+          onSelect={(ids) => {
+            if (picker.replace) {
+              const target = picker.replace;
+              updateActive((a) => ({ ...a, exercises: a.exercises.map((we) => (we.id === target ? makeWorkoutExercise(ids[0]) : we)) }));
+            } else addExercisesToActive(ids);
+            setPicker(null);
+          }}
+        />
+      )}
+
+      {menuFor && (
+        <Sheet onClose={() => setMenuFor(null)}>
+          <SheetItem icon="swap" label="Replace Exercise" onClick={() => (setPicker({ replace: menuFor }), setMenuFor(null))} />
+          <SheetItem icon="up" label="Move Up" onClick={() => (move(menuFor, -1), setMenuFor(null))} />
+          <SheetItem icon="down" label="Move Down" onClick={() => (move(menuFor, 1), setMenuFor(null))} />
+          <SheetItem
+            icon="trash"
+            label="Remove Exercise"
+            danger
+            onClick={() => {
+              updateActive((a) => ({ ...a, exercises: a.exercises.filter((e) => e.id !== menuFor) }));
+              setMenuFor(null);
+            }}
+          />
+        </Sheet>
+      )}
+
+      {restFor && (
+        <Sheet title="Rest Timer" onClose={() => setRestFor(null)}>
+          {REST_OPTIONS.map((sec) => (
+            <SheetItem
+              key={sec}
+              label={sec ? fmtDuration(sec) : 'Off'}
+              onClick={() => {
+                updateExercise(restFor, (x) => ({ ...x, restSeconds: sec }));
+                setRestFor(null);
+              }}
+            />
+          ))}
+        </Sheet>
+      )}
+
+      {manualRest && (
+        <Sheet title="Start Rest Timer" onClose={() => setManualRest(false)}>
+          {REST_OPTIONS.filter(Boolean).map((sec) => (
+            <SheetItem
+              key={sec}
+              icon="timer"
+              label={fmtDuration(sec)}
+              onClick={() => {
+                startRest(sec, active.exercises[active.exercises.length - 1]?.exerciseId ?? '');
+                setManualRest(false);
+              }}
+            />
+          ))}
+        </Sheet>
+      )}
+
+      {confirmDiscard && (
+        <Confirm
+          title="Discard workout?"
+          message="All progress in this workout will be lost."
+          confirmLabel="Discard Workout"
+          danger
+          onCancel={() => setConfirmDiscard(false)}
+          onConfirm={() => {
+            discardWorkout();
+            removeRoutes((r) => r.name === 'active' || r.name === 'finish');
+          }}
+        />
+      )}
+    </div>
+  );
+}

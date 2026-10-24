@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">RepCount</string>
+    <string name="title_activity_main">RepCount</string>
+    <string name="package_name">com.repcount.app</string>
+    <string name="custom_url_scheme">com.repcount.app</string>
+</resources>
