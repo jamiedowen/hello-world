@@ -5,7 +5,9 @@ A free, offline workout tracker for Android, inspired by Hevy. It uses the same 
 ## Features
 
 - **Workouts**: log workouts live, with a running duration clock and live volume and set counts.
-- **Exercise types**: about 110 built-in exercises, each tracked the right way:
+- **About 760 exercises with photos**: a round photo icon for each one in every list, plus start and end position photos on the exercise page that alternate like a demo.
+- **Premade routines**: Push Day, Pull Day, Leg Day, Cardio Mix, 5K Run and Core Finisher. Start one directly, or save it to My Routines and edit it.
+- **Exercise types**: each exercise is tracked the right way:
   - weight × reps (bench press, squat…)
   - bodyweight reps, plus weighted and assisted variants (pull ups, dips…)
   - duration (plank)
@@ -43,5 +45,7 @@ npm run build          # typecheck + production build
 npx cap sync android   # copy the web build into the Android project
 cd android && ./gradlew assembleRelease   # needs the Android SDK
 ```
+
+Exercise photos and the extra exercises come from [Free Exercise DB](https://github.com/yuhonas/free-exercise-db), which is public domain (Unlicense). To regenerate them, run `python3 scripts/import-exercises.py <path-to-free-exercise-db-clone>`.
 
 Tech: React + TypeScript + Vite, wrapped as a native Android app with Capacitor. It uses the haptics, local notifications, status bar and back-button plugins.

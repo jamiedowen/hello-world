@@ -4,7 +4,7 @@ import { push, useBackHandler } from '../lib/nav';
 import { allExercises, useStore } from '../lib/store';
 import type { Equipment, Exercise, Muscle } from '../types';
 import { Icon } from './Icon';
-import { ExerciseThumb, Sheet, SheetItem, TopBar } from './ui';
+import { ExerciseIcon, Sheet, SheetItem, TopBar } from './ui';
 
 export function useExerciseFilter() {
   const custom = useStore((s) => s.customExercises);
@@ -13,13 +13,18 @@ export function useExerciseFilter() {
   const [muscle, setMuscle] = useState<Muscle | null>(null);
   const [equipment, setEquipment] = useState<Equipment | null>(null);
   const list = useMemo(() => {
-    const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-    return all.filter(
+    const q = query.toLowerCase().trim();
+    const words = q.split(/\s+/).filter(Boolean);
+    const matches = all.filter(
       (e) =>
         words.every((w) => e.name.toLowerCase().includes(w)) &&
         (!muscle || e.primary === muscle || e.secondary.includes(muscle)) &&
         (!equipment || e.equipment === equipment),
     );
+    if (!q) return matches;
+    // Best matches first: names starting with the query, then hand-written/custom exercises, then shorter names.
+    const score = (e: Exercise) => (e.name.toLowerCase().startsWith(q) ? 0 : 2) + (e.id.startsWith('fx_') ? 1 : 0);
+    return [...matches].sort((a, b) => score(a) - score(b) || a.name.length - b.name.length);
   }, [all, query, muscle, equipment]);
   return { list, query, setQuery, muscle, setMuscle, equipment, setEquipment };
 }
@@ -75,7 +80,7 @@ export function ExerciseRow({ ex, selected, onClick, onInfo }: { ex: Exercise; s
           <Icon name="check" />
         </div>
       ) : (
-        <ExerciseThumb name={ex.name} />
+        <ExerciseIcon ex={ex} />
       )}
       <div className="grow">
         <div className="ellipsis" style={{ fontWeight: 600 }}>

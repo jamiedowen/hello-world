@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { BodyMap, intensityFromSplit } from '../components/BodyMap';
 import { Icon } from '../components/Icon';
 import { describeSet, setLabels } from '../components/SetTable';
-import { BackButton, Confirm, ExerciseThumb, Sheet, SheetItem, Stat, TopBar } from '../components/ui';
+import { BackButton, Confirm, ExerciseIcon, ExerciseThumb, Sheet, SheetItem, Stat, TopBar } from '../components/ui';
 import { MUSCLE_LABELS } from '../data/meta';
 import { fmtDate, fmtDistance, fmtDuration, fmtNumber, fmtPace, fmtTime, fmtWeight, fromLocalInput, toLocalInput } from '../lib/format';
 import { pop, push } from '../lib/nav';
@@ -153,7 +153,7 @@ export function WorkoutDetailScreen({ id, fresh }: { id: string; fresh?: boolean
           return (
             <div key={we.id} className="card tappable" onClick={() => push({ name: 'exercise', id: ex.id })}>
               <div className="row" style={{ marginBottom: 6 }}>
-                <ExerciseThumb name={ex.name} />
+                <ExerciseIcon ex={ex} />
                 <div className="grow">
                   <div className="link ellipsis">{ex.name}</div>
                   <div className="small muted">

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BackButton, Confirm, Sheet, SheetItem, TopBar } from '../components/ui';
+import { BackButton, Confirm, ExerciseIcon, Sheet, SheetItem, TopBar } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { ExercisePicker } from '../components/ExercisePicker';
 import { REST_OPTIONS, SetTable, fillFromPrevious } from '../components/SetTable';
@@ -113,6 +113,7 @@ export function ActiveWorkoutScreen() {
           return (
             <section key={we.id} className="wo-exercise">
               <div className="head">
+                <ExerciseIcon ex={ex} size={36} />
                 <button className="name" onClick={() => push({ name: 'exercise', id: ex.id })}>
                   {ex.name}
                 </button>
@@ -120,7 +121,8 @@ export function ActiveWorkoutScreen() {
                   <Icon name="more" />
                 </button>
               </div>
-              <input
+              <textarea
+                rows={1}
                 className="wo-notes"
                 placeholder="Add notes here..."
                 value={we.notes ?? ''}

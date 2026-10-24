@@ -4,7 +4,7 @@ import { LineChart } from '../components/Charts';
 import { ExerciseFilters, ExerciseRow, useExerciseFilter } from '../components/ExercisePicker';
 import { Icon } from '../components/Icon';
 import { describeSet, setLabels } from '../components/SetTable';
-import { BackButton, Confirm, ExerciseThumb, Segmented, TopBar } from '../components/ui';
+import { BackButton, Confirm, ExerciseDemo, ExerciseIcon, Segmented, TopBar } from '../components/ui';
 import { EQUIPMENT_LABELS, MUSCLE_GROUPS, MUSCLE_LABELS, TYPE_LABELS } from '../data/meta';
 import { fmtClock, fmtDate, fmtDistance, fmtDuration, fmtShortDate, fmtWeight, toDisplayDistance, toDisplayWeight, uid } from '../lib/format';
 import { pop, push } from '../lib/nav';
@@ -29,7 +29,7 @@ export function ExercisesTab() {
       <div className="content flush" style={{ paddingTop: 0 }}>
         {f.list.map((ex) => {
           const letter = ex.name[0].toUpperCase();
-          const head = letter !== lastLetter;
+          const head = !f.query && letter !== lastLetter;
           lastLetter = letter;
           return (
             <Fragment key={ex.id}>
@@ -123,8 +123,9 @@ export function ExerciseDetailScreen({ id }: { id: string }) {
       <div className="content">
         {tab === 'about' && (
           <>
+            <ExerciseDemo ex={ex} />
             <div className="row" style={{ marginBottom: 16 }}>
-              <ExerciseThumb name={ex.name} large />
+              {!ex.image && <ExerciseIcon ex={ex} size={64} />}
               <div className="grow">
                 <div style={{ fontWeight: 700, fontSize: 19 }}>{ex.name}</div>
                 <div className="small muted" style={{ marginTop: 4 }}>

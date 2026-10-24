@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Icon } from '../components/Icon';
 import { Confirm, Sheet, SheetItem, TopBar } from '../components/ui';
+import { PROGRAMS } from '../data/programs';
 import { uid } from '../lib/format';
 import { push, setTab } from '../lib/nav';
 import { getExercise, useStore } from '../lib/store';
@@ -20,6 +21,14 @@ export function WorkoutTab() {
     push({ name: 'active' });
   };
 
+  const copy = (r: Routine, title = r.title): Routine => ({
+    id: uid(),
+    title,
+    notes: r.notes,
+    createdAt: Date.now(),
+    exercises: r.exercises.map((e) => ({ ...e, id: uid(), sets: e.sets.map((s) => ({ ...s })) })),
+  });
+
   return (
     <div className="screen">
       <TopBar title="Workout" />
@@ -31,7 +40,7 @@ export function WorkoutTab() {
           <Icon name="plus" /> Start Empty Workout
         </button>
 
-        <div className="section-title">Routines</div>
+        <div className="section-title">My Routines</div>
         <div className="row" style={{ gap: 10, marginBottom: 12 }}>
           <button className="btn grow" onClick={() => push({ name: 'routine' })}>
             <Icon name="list" size={18} /> New Routine
@@ -65,6 +74,35 @@ export function WorkoutTab() {
             </button>
           </div>
         ))}
+
+        <div className="section-title">Premade Routines</div>
+        {PROGRAMS.map((p) => {
+          const saved = routines.some((r) => r.templateId === p.id);
+          return (
+            <div key={p.id} className="card">
+              <div className="row">
+                <div className="thumb" style={{ fontSize: 22 }}>
+                  {p.emoji}
+                </div>
+                <div className="grow">
+                  <div style={{ fontWeight: 700, fontSize: 17 }}>{p.title}</div>
+                  <div className="small muted">{p.summary}</div>
+                </div>
+              </div>
+              <div className="small muted" style={{ marginTop: 10, lineHeight: 1.45 }}>
+                {p.exercises.map((e) => getExercise(e.exerciseId)?.name).filter(Boolean).join(' · ')}
+              </div>
+              <div className="row" style={{ marginTop: 12, gap: 10 }}>
+                <button className="btn grow" disabled={saved} onClick={() => saveRoutine({ ...copy(p), templateId: p.id })}>
+                  {saved ? 'Saved ✓' : 'Save'}
+                </button>
+                <button className="btn primary grow" onClick={() => begin(p)}>
+                  Start
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {menuFor && (
@@ -74,13 +112,7 @@ export function WorkoutTab() {
             icon="copy"
             label="Duplicate Routine"
             onClick={() => {
-              saveRoutine({
-                ...menuFor,
-                id: uid(),
-                title: `${menuFor.title} (copy)`,
-                createdAt: Date.now(),
-                exercises: menuFor.exercises.map((e) => ({ ...e, id: uid() })),
-              });
+              saveRoutine(copy(menuFor, `${menuFor.title} (copy)`));
               setMenuFor(null);
             }}
           />

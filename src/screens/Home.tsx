@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Icon } from '../components/Icon';
-import { ExerciseThumb, Stat, TopBar } from '../components/ui';
+import { ExerciseIcon, ExerciseThumb, Stat, TopBar } from '../components/ui';
 import { fmtDistance, fmtDuration, fmtWeight, timeAgo } from '../lib/format';
 import { push, setTab } from '../lib/nav';
 import { getExercise, useStore } from '../lib/store';
@@ -71,11 +71,12 @@ function WorkoutCard({ w, all, settings }: { w: Workout; all: Workout[]; setting
         {w.exercises.slice(0, 3).map((we) => {
           const ex = getExercise(we.exerciseId);
           return (
-            <div key={we.id} className="row small" style={{ padding: '5px 0' }}>
-              <span className="muted" style={{ width: 52 }}>
+            <div key={we.id} className="row small" style={{ padding: '5px 0', gap: 10 }}>
+              {ex && <ExerciseIcon ex={ex} size={30} />}
+              <span className="muted" style={{ width: 44, flexShrink: 0 }}>
                 {we.sets.length} set{we.sets.length > 1 ? 's' : ''}
               </span>
-              <span className="ellipsis">{ex?.name ?? 'Unknown exercise'}</span>
+              <span className="ellipsis grow">{ex?.name ?? 'Unknown exercise'}</span>
             </div>
           );
         })}

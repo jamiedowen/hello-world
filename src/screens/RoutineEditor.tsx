@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ExercisePicker } from '../components/ExercisePicker';
 import { Icon } from '../components/Icon';
 import { REST_OPTIONS, SetTable } from '../components/SetTable';
-import { Sheet, SheetItem, TopBar } from '../components/ui';
+import { ExerciseIcon, Sheet, SheetItem, TopBar } from '../components/ui';
 import { fmtDuration, uid } from '../lib/format';
 import { pop, push } from '../lib/nav';
 import { getExercise, getState, useStore } from '../lib/store';
@@ -16,6 +16,7 @@ export function RoutineEditorScreen({ id }: { id?: string }) {
     return {
       id: existing?.id ?? uid(),
       createdAt: existing?.createdAt ?? Date.now(),
+      templateId: existing?.templateId,
       title: existing?.title ?? '',
       notes: existing?.notes ?? '',
       exercises: (existing?.exercises ?? []).map(
@@ -42,6 +43,7 @@ export function RoutineEditorScreen({ id }: { id?: string }) {
     const r: Routine = {
       id: draft.id,
       createdAt: draft.createdAt,
+      templateId: draft.templateId,
       title: title.trim() || 'My Routine',
       notes: draft.notes,
       exercises: exercises.map((we) => ({
@@ -88,6 +90,7 @@ export function RoutineEditorScreen({ id }: { id?: string }) {
           return (
             <section key={we.id} className="wo-exercise">
               <div className="head">
+                <ExerciseIcon ex={ex} size={36} />
                 <button className="name" onClick={() => push({ name: 'exercise', id: ex.id })}>
                   {ex.name}
                 </button>
@@ -95,7 +98,7 @@ export function RoutineEditorScreen({ id }: { id?: string }) {
                   <Icon name="more" />
                 </button>
               </div>
-              <input className="wo-notes" placeholder="Add routine notes here" value={we.notes ?? ''} onChange={(e) => update(we.id, (x) => ({ ...x, notes: e.target.value }))} />
+              <textarea rows={1} className="wo-notes" placeholder="Add routine notes here" value={we.notes ?? ''} onChange={(e) => update(we.id, (x) => ({ ...x, notes: e.target.value }))} />
               <button className="rest-chip" onClick={() => setRestFor(we.id)}>
                 <Icon name="timer" size={16} /> Rest Timer: {we.restSeconds ? fmtDuration(we.restSeconds) : 'OFF'}
               </button>

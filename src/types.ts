@@ -64,6 +64,8 @@ export interface Exercise {
   instructions: string[];
   tips?: string[];
   custom?: boolean;
+  image?: string; // folder under public/ex with t.webp (thumbnail), 0.webp & 1.webp (start/end photos)
+  emoji?: string; // fallback icon when there's no photo
 }
 
 export type SetKind = 'normal' | 'warmup' | 'failure' | 'drop';
@@ -121,6 +123,7 @@ export interface Routine {
   notes?: string;
   exercises: RoutineExercise[];
   createdAt: number;
+  templateId?: string; // set when copied from a premade routine
 }
 
 export interface Settings {

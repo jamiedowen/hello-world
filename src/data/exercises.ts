@@ -1,4 +1,6 @@
 import type { Equipment, Exercise, ExerciseType, Muscle } from '../types';
+import CURATED_IMAGES from './curated-images.json';
+import LIBRARY from './library.json';
 
 function ex(
   id: string,
@@ -14,7 +16,7 @@ function ex(
   return { id, name, type, equipment, primary, secondary, description, instructions, tips };
 }
 
-export const BUILT_IN_EXERCISES: Exercise[] = [
+const CURATED: Exercise[] = [
   // ───────────── CHEST ─────────────
   ex('bench_press_bb', 'Bench Press (Barbell)', 'weight_reps', 'barbell', 'chest', ['triceps', 'shoulders'],
     'The classic compound upper-body press. Builds strength and size in the chest, front delts and triceps.',
@@ -818,6 +820,17 @@ export const BUILT_IN_EXERCISES: Exercise[] = [
   ex('air_bike', 'Air Bike', 'distance_duration', 'cardio_machine', 'cardio', ['quadriceps', 'shoulders'],
     'A fan bike combining arm and leg work for brutal intervals.',
     ['Push and pull the handles while pedalling. Effort controls resistance.']),
+];
+
+// Icons for exercises without a photo.
+const EMOJI: Record<string, string> = { burpee: '🤸', swimming: '🏊', ski_erg: '⛷️', air_bike: '🚴' };
+
+const IMAGES = CURATED_IMAGES as Record<string, string>;
+
+/** Hand-written exercises first, then the imported Free Exercise DB library (public domain). */
+export const BUILT_IN_EXERCISES: Exercise[] = [
+  ...CURATED.map((e) => ({ ...e, image: IMAGES[e.id], emoji: EMOJI[e.id] })),
+  ...(LIBRARY as Exercise[]),
 ];
 
 export const EXERCISE_MAP: Record<string, Exercise> = Object.fromEntries(

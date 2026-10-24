@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import type { Exercise } from '../types';
 import { useBackHandler } from '../lib/nav';
 import { Icon } from './Icon';
 
@@ -102,13 +103,64 @@ export function Stat({ label, value, big }: { label: string; value: ReactNode; b
   );
 }
 
-export function ExerciseThumb({ name, large }: { name: string; large?: boolean }) {
-  const initials = name
+function initials(name: string): string {
+  return name
     .replace(/\(.*?\)/g, '')
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
     .map((w) => w[0]?.toUpperCase())
     .join('');
-  return <div className={`thumb ${large ? 'lg' : ''}`}>{initials}</div>;
+}
+
+/** Initials avatar (used for the user's profile). */
+export function ExerciseThumb({ name, large }: { name: string; large?: boolean }) {
+  return <div className={`thumb ${large ? 'lg' : ''}`}>{initials(name)}</div>;
+}
+
+/** Round photo thumbnail for an exercise; falls back to an emoji or initials. */
+export function ExerciseIcon({ ex, size = 44 }: { ex: Exercise; size?: number }) {
+  const [failed, setFailed] = useState(false);
+  const style = { width: size, height: size, borderRadius: size / 2 };
+  if (ex.image && !failed)
+    return (
+      <div className="thumb photo" style={style}>
+        <img src={`ex/${ex.image}/t.webp`} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} />
+      </div>
+    );
+  if (ex.emoji)
+    return (
+      <div className="thumb" style={{ ...style, fontSize: size * 0.5 }}>
+        {ex.emoji}
+      </div>
+    );
+  return (
+    <div className="thumb" style={{ ...style, fontSize: size * 0.32 }}>
+      {initials(ex.name)}
+    </div>
+  );
+}
+
+/** Start/end position photos that alternate, like a looping demo. */
+export function ExerciseDemo({ ex }: { ex: Exercise }) {
+  const [frame, setFrame] = useState(0);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    const t = setInterval(() => setFrame((f) => 1 - f), 1100);
+    return () => clearInterval(t);
+  }, []);
+  if (!ex.image || failed) return null;
+  return (
+    <div className="demo">
+      {[0, 1].map((i) => (
+        <img
+          key={i}
+          src={`ex/${ex.image}/${i}.webp`}
+          alt={i ? 'End position' : 'Start position'}
+          style={{ opacity: frame === i ? 1 : 0 }}
+          onError={() => i === 0 && setFailed(true)}
+        />
+      ))}
+    </div>
+  );
 }
