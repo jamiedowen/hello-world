@@ -7,6 +7,7 @@ A free, offline workout tracker for Android, inspired by Hevy. It uses the same 
 - **Workouts**: log workouts live, with a running duration clock and live volume and set counts.
 - **About 760 exercises with photos**: a round photo icon for each one in every list, plus start and end position photos on the exercise page that alternate like a demo.
 - **Premade routines**: Push Day, Pull Day, Leg Day, Cardio Mix, 5K Run and Core Finisher. Start one directly, or save it to My Routines and edit it.
+- **Personal records**: a trophy appears on a set the moment it beats your record. The summary lists every PR with your previous best. Each exercise shows its heaviest weight, best 1RM, best set and session volume, most reps, longest distance, fastest pace, and set records (best weight for each rep count). Profile → Personal Records lists recent PRs and records for every exercise.
 - **Exercise types**: each exercise is tracked the right way:
   - weight × reps (bench press, squat…)
   - bodyweight reps, plus weighted and assisted variants (pull ups, dips…)

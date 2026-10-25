@@ -2,11 +2,12 @@ import { useMemo, useRef, useState } from 'react';
 import { BodyMap, intensityFromSplit } from '../components/BodyMap';
 import { BarChart } from '../components/Charts';
 import { Icon } from '../components/Icon';
-import { BackButton, Confirm, ExerciseThumb, Segmented, Stat, Toggle, TopBar } from '../components/ui';
+import { BackButton, Confirm, ExerciseIcon, ExerciseThumb, Segmented, Stat, Toggle, TopBar } from '../components/ui';
 import { MUSCLE_LABELS } from '../data/meta';
 import { fmtDistance, fmtDuration, fmtShortDate, fmtWeight, fromDisplayWeight, toDisplayWeight } from '../lib/format';
 import { pop, push } from '../lib/nav';
-import { exportData, importData, setState, useStore } from '../lib/store';
+import { RECORD_LABELS, fmtRecord, recentPrs, recordIndex, recordKeysFor } from '../lib/records';
+import { exportData, getExercise, importData, setState, useStore } from '../lib/store';
 import { cardioTotals, muscleSplit, totalReps, weekStart, workoutVolume } from '../lib/stats';
 import { NumInput } from '../components/NumInput';
 import { REST_OPTIONS } from '../components/SetTable';
@@ -65,6 +66,7 @@ export function ProfileScreen() {
   }, [workouts, range]);
   const maxSplit = Math.max(1, ...split.map((s) => s.pct));
 
+  const prCount = useMemo(() => [...recordIndex(workouts).byWorkout.values()].reduce((a, e) => a + e.length, 0), [workouts]);
   const totalTime = workouts.reduce((a, w) => a + (w.endedAt - w.startedAt) / 1000, 0);
   const totalVol = workouts.reduce((a, w) => a + workoutVolume(w), 0);
 
@@ -90,6 +92,15 @@ export function ProfileScreen() {
             </div>
           </div>
         </div>
+
+        <button className="card tappable row" style={{ width: '100%', textAlign: 'left' }} onClick={() => push({ name: 'records' })}>
+          <span className="pr-icon">🏆</span>
+          <div className="grow">
+            <div style={{ fontWeight: 600 }}>Personal Records</div>
+            <div className="small muted">{prCount} PRs across {recordIndex(workouts).byExercise.size} exercises</div>
+          </div>
+          <Icon name="right" />
+        </button>
 
         <div className="card">
           <div className="small muted" style={{ marginBottom: 8 }}>
@@ -351,6 +362,76 @@ export function SettingsScreen() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+export function RecordsScreen() {
+  const workouts = useStore((s) => s.workouts);
+  const settings = useStore((s) => s.settings);
+  const idx = recordIndex(workouts);
+  const recent = recentPrs(idx, 15);
+  const all = [...idx.byExercise.entries()]
+    .map(([id, rec]) => ({ ex: getExercise(id), rec }))
+    .filter((x) => x.ex)
+    .sort((a, b) => b.rec.sessions - a.rec.sessions || a.ex!.name.localeCompare(b.ex!.name));
+
+  return (
+    <div className="screen">
+      <TopBar left={<BackButton onClick={pop} />} title="Personal Records" />
+      <div className="content">
+        {all.length === 0 && (
+          <div className="empty">
+            <div className="big">🏆</div>
+            Your best lifts, longest runs and set records will show up here once you log some workouts.
+          </div>
+        )}
+        {recent.length > 0 && (
+          <>
+            <div className="section-title" style={{ marginTop: 0 }}>
+              Recent PRs
+            </div>
+            <div className="card">
+              {recent.map((r, i) => (
+                <div key={i} className="record-row" role="button" onClick={() => push({ name: 'workout', id: r.workoutId })}>
+                  <ExerciseIcon ex={r.exercise} size={34} />
+                  <div className="grow" style={{ minWidth: 0 }}>
+                    <div className="ellipsis">{r.exercise.name}</div>
+                    <div className="tiny muted">
+                      {RECORD_LABELS[r.key]} · {fmtShortDate(r.date)}
+                    </div>
+                  </div>
+                  <span className="pr-badge">🏆 {fmtRecord(r.key, r.value, r.exercise, settings)}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+        {all.length > 0 && <div className="section-title">All Exercises</div>}
+        {all.map(({ ex, rec }) => {
+          const keys = recordKeysFor(ex!.type).filter((k) => rec.best[k]).slice(0, 3);
+          return (
+            <div key={ex!.id} className="card tappable" onClick={() => push({ name: 'exercise', id: ex!.id, tab: 1 })}>
+              <div className="row">
+                <ExerciseIcon ex={ex!} size={40} />
+                <div className="grow" style={{ minWidth: 0 }}>
+                  <div className="ellipsis" style={{ fontWeight: 600 }}>
+                    {ex!.name}
+                  </div>
+                  <div className="tiny muted">
+                    {rec.sessions} session{rec.sessions === 1 ? '' : 's'}
+                  </div>
+                </div>
+              </div>
+              <div className="stats-row" style={{ marginBottom: 0 }}>
+                {keys.map((k) => (
+                  <Stat key={k} label={RECORD_LABELS[k]} value={fmtRecord(k, rec.best[k]!.value, ex!, settings)} />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

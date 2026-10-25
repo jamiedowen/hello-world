@@ -1,5 +1,5 @@
 import { COMPARISONS } from '../data/meta';
-import type { Exercise, ExerciseType, Muscle, Workout, WorkoutExercise, WorkoutSet } from '../types';
+import type { ExerciseType, Muscle, Workout, WorkoutExercise, WorkoutSet } from '../types';
 import { getExercise } from './store';
 
 export function usesWeight(t: ExerciseType) {
@@ -119,37 +119,6 @@ export function exerciseHistory(workouts: Workout[], exerciseId: string) {
   const out: { workout: Workout; we: WorkoutExercise }[] = [];
   for (const w of workouts) for (const we of w.exercises) if (we.exerciseId === exerciseId) out.push({ workout: w, we });
   return out.sort((a, b) => a.workout.startedAt - b.workout.startedAt);
-}
-
-export interface PersonalRecord {
-  exercise: Exercise;
-  label: string;
-}
-
-/** New personal records set in `w` compared to all workouts before it. */
-export function recordsIn(w: Workout, all: Workout[]): PersonalRecord[] {
-  const before = all.filter(
-    (o) => o.id !== w.id && (o.startedAt < w.startedAt || (o.startedAt === w.startedAt && o.endedAt < w.endedAt)),
-  );
-  const out: PersonalRecord[] = [];
-  for (const we of w.exercises) {
-    const ex = getExercise(we.exerciseId);
-    if (!ex) continue;
-    const prevSets = before.flatMap((o) => o.exercises.filter((x) => x.exerciseId === ex.id).flatMap((x) => x.sets));
-    if (!prevSets.some((s) => s.done)) continue; // first time doing it – no PR noise
-    const prev = bestOf(prevSets, ex.type);
-    const cur = bestOf(we.sets, ex.type);
-    if (usesWeight(ex.type) && ex.type !== 'assisted_bodyweight') {
-      if (cur.weight > prev.weight) out.push({ exercise: ex, label: 'Heaviest Weight' });
-      if (cur.oneRm > prev.oneRm && usesReps(ex.type)) out.push({ exercise: ex, label: 'Best 1RM' });
-      if (cur.volume > prev.volume && usesReps(ex.type)) out.push({ exercise: ex, label: 'Best Set Volume' });
-    } else if (usesReps(ex.type)) {
-      if (cur.reps > prev.reps) out.push({ exercise: ex, label: 'Most Reps' });
-    }
-    if (usesDistance(ex.type) && cur.distance > prev.distance) out.push({ exercise: ex, label: 'Longest Distance' });
-    if (ex.type === 'duration' && cur.duration > prev.duration) out.push({ exercise: ex, label: 'Longest Duration' });
-  }
-  return out;
 }
 
 /** Start of the week (Monday 00:00) for a timestamp. */

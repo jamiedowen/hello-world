@@ -601,7 +601,8 @@ select {
 }
 .set-num {
   font-weight: 700;
-  width: 32px;
+  min-width: 32px;
+  white-space: nowrap;
   height: 28px;
   border-radius: 6px;
 }
@@ -968,4 +969,71 @@ ol.steps li::before {
 .list-item {
   content-visibility: auto;
   contain-intrinsic-size: auto 64px;
+}
+.pr-mark {
+  margin-right: 4px;
+  font-size: 13px;
+}
+
+/* ───── Swipeable tabs ───── */
+.tabs.swipe {
+  position: relative;
+}
+.tabs.swipe button {
+  border-bottom: 0;
+}
+.tab-ink {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--accent);
+  will-change: transform;
+}
+.pager {
+  flex: 1;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.pager::-webkit-scrollbar {
+  display: none;
+}
+.page {
+  flex: 0 0 100%;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  padding: 16px 16px calc(24px + var(--safe-bottom));
+}
+
+.record-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+}
+.record-row + .record-row {
+  border-top: 1px solid var(--border);
+}
+.pr-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  background: rgba(245, 185, 55, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.pr-dot {
+  font-size: 11px;
+  margin-left: 1px;
+  vertical-align: 1px;
 }

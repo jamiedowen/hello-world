@@ -1,19 +1,22 @@
 import { Fragment, useMemo, useState } from 'react';
+import { useProgressiveList } from '../lib/useNow';
 import { BodyMap } from '../components/BodyMap';
 import { LineChart } from '../components/Charts';
 import { ExerciseFilters, ExerciseRow, useExerciseFilter } from '../components/ExercisePicker';
 import { Icon } from '../components/Icon';
 import { describeSet, setLabels } from '../components/SetTable';
-import { BackButton, Confirm, ExerciseDemo, ExerciseIcon, Segmented, TopBar } from '../components/ui';
+import { BackButton, Confirm, ExerciseDemo, ExerciseIcon, Segmented, SwipeTabs, TopBar } from '../components/ui';
 import { EQUIPMENT_LABELS, MUSCLE_GROUPS, MUSCLE_LABELS, TYPE_LABELS } from '../data/meta';
-import { fmtClock, fmtDate, fmtDistance, fmtDuration, fmtShortDate, fmtWeight, toDisplayDistance, toDisplayWeight, uid } from '../lib/format';
+import { fmtClock, fmtDate, fmtDuration, fmtShortDate, fmtWeight, toDisplayDistance, toDisplayWeight, uid } from '../lib/format';
 import { pop, push } from '../lib/nav';
 import { getExercise, setState, useStore } from '../lib/store';
-import { bestOf, exerciseHistory, exerciseVolume, oneRepMax, usesDistance, usesReps, usesWeight } from '../lib/stats';
-import type { Equipment, Exercise, ExerciseType, Muscle, Settings, WorkoutExercise } from '../types';
+import { RECORD_LABELS, fmtRecord, recordIndex, recordKeysFor } from '../lib/records';
+import { bestOf, exerciseHistory, exerciseVolume, oneRepMax, usesReps, usesWeight } from '../lib/stats';
+import type { Equipment, Exercise, ExerciseType, Muscle, Settings, Workout, WorkoutExercise } from '../types';
 
 export function ExercisesTab() {
   const f = useExerciseFilter();
+  const { visible, onScroll } = useProgressiveList(f.list);
   let lastLetter = '';
   return (
     <div className="screen">
@@ -26,8 +29,8 @@ export function ExercisesTab() {
         }
       />
       <ExerciseFilters {...f} />
-      <div className="content flush" style={{ paddingTop: 0 }}>
-        {f.list.map((ex) => {
+      <div className="content flush" style={{ paddingTop: 0 }} onScroll={onScroll}>
+        {visible.map((ex) => {
           const letter = ex.name[0].toUpperCase();
           const head = !f.query && letter !== lastLetter;
           lastLetter = letter;
@@ -83,22 +86,13 @@ function metricsFor(ex: Exercise, s: Settings): Metric[] {
   ];
 }
 
-export function ExerciseDetailScreen({ id }: { id: string }) {
+export function ExerciseDetailScreen({ id, tab = 0 }: { id: string; tab?: number }) {
   const workouts = useStore((s) => s.workouts);
   const settings = useStore((s) => s.settings);
   useStore((s) => s.customExercises);
   const ex = getExercise(id);
-  const [tab, setTab] = useState<'about' | 'stats' | 'history'>('about');
-  const history = useMemo(() => exerciseHistory(workouts, id), [workouts, id]);
-  const metrics = ex ? metricsFor(ex, settings) : [];
-  const [metric, setMetric] = useState(metrics[0]?.key ?? '');
   const [confirmDelete, setConfirmDelete] = useState(false);
-
   if (!ex) return null;
-  const m = metrics.find((x) => x.key === metric) ?? metrics[0];
-  const allSets = history.flatMap((h) => h.we.sets);
-  const best = bestOf(allSets, ex.type);
-  const intensity: Partial<Record<Muscle, number>> = { [ex.primary]: 1, ...Object.fromEntries(ex.secondary.map((x) => [x, 0.35])) };
 
   return (
     <div className="screen">
@@ -113,139 +107,14 @@ export function ExerciseDetailScreen({ id }: { id: string }) {
           ) : undefined
         }
       />
-      <div className="tabs">
-        {(['about', 'stats', 'history'] as const).map((t) => (
-          <button key={t} className={tab === t ? 'active' : ''} onClick={() => setTab(t)}>
-            {t === 'about' ? 'How To' : t === 'stats' ? 'Summary' : 'History'}
-          </button>
-        ))}
-      </div>
-      <div className="content">
-        {tab === 'about' && (
-          <>
-            <ExerciseDemo ex={ex} />
-            <div className="row" style={{ marginBottom: 16 }}>
-              {!ex.image && <ExerciseIcon ex={ex} size={64} />}
-              <div className="grow">
-                <div style={{ fontWeight: 700, fontSize: 19 }}>{ex.name}</div>
-                <div className="small muted" style={{ marginTop: 4 }}>
-                  {EQUIPMENT_LABELS[ex.equipment]} · {TYPE_LABELS[ex.type]}
-                </div>
-              </div>
-            </div>
-            {ex.description && <p style={{ lineHeight: 1.5, marginTop: 0 }}>{ex.description}</p>}
-            <div className="card">
-              <div className="small muted" style={{ marginBottom: 6 }}>
-                Primary
-              </div>
-              <span className="tag primary">{MUSCLE_LABELS[ex.primary]}</span>
-              {ex.secondary.length > 0 && (
-                <>
-                  <div className="small muted" style={{ margin: '6px 0' }}>
-                    Secondary
-                  </div>
-                  {ex.secondary.map((x) => (
-                    <span key={x} className="tag secondary">
-                      {MUSCLE_LABELS[x]}
-                    </span>
-                  ))}
-                </>
-              )}
-              {ex.primary !== 'cardio' && (
-                <div style={{ marginTop: 12 }}>
-                  <BodyMap intensity={intensity} height={260} />
-                </div>
-              )}
-            </div>
-            {ex.instructions.length > 0 && (
-              <>
-                <div className="section-title">Instructions</div>
-                <ol className="steps">
-                  {ex.instructions.map((step, i) => (
-                    <li key={i}>{step}</li>
-                  ))}
-                </ol>
-              </>
-            )}
-            {ex.tips && ex.tips.length > 0 && (
-              <>
-                <div className="section-title">Tips</div>
-                <div className="card">
-                  {ex.tips.map((t, i) => (
-                    <div key={i} className="row" style={{ alignItems: 'flex-start', padding: '4px 0' }}>
-                      <span>💡</span>
-                      <span style={{ lineHeight: 1.45 }}>{t}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </>
-        )}
-
-        {tab === 'stats' && (
-          <>
-            {history.length === 0 ? (
-              <div className="empty">
-                <div className="big">📈</div>
-                Log this exercise in a workout to see your progress here.
-              </div>
-            ) : (
-              <>
-                <Segmented value={m.key} options={metrics.map((x) => ({ value: x.key, label: x.label }))} onChange={setMetric} />
-                <div className="card" style={{ marginTop: 12 }}>
-                  <LineChart
-                    key={m.key}
-                    data={history.slice(-20).map((h) => ({ label: fmtShortDate(h.workout.startedAt), value: m.value(h.we, ex) }))}
-                    format={m.format}
-                  />
-                </div>
-                <div className="section-title">Personal Records</div>
-                <div className="card">
-                  {usesWeight(ex.type) && <RecordRow label="Heaviest Weight" value={fmtWeight(best.weight, settings)} />}
-                  {usesWeight(ex.type) && usesReps(ex.type) && <RecordRow label="Best 1RM (est.)" value={fmtWeight(best.oneRm, settings)} />}
-                  {usesWeight(ex.type) && usesReps(ex.type) && <RecordRow label="Best Set Volume" value={fmtWeight(best.volume, settings)} />}
-                  {usesReps(ex.type) && <RecordRow label="Most Reps" value={`${best.reps}`} />}
-                  {usesDistance(ex.type) && (
-                    <RecordRow label="Longest Distance" value={ex.type === 'weight_distance' ? `${Math.round(best.distance * 1000)} m` : fmtDistance(best.distance, settings)} />
-                  )}
-                  {(ex.type === 'duration' || ex.type === 'distance_duration') && <RecordRow label="Longest Time" value={fmtClock(best.duration)} />}
-                  <RecordRow label="Times Performed" value={`${history.length}`} />
-                </div>
-                {usesWeight(ex.type) && usesReps(ex.type) && <RepMaxTable sets={allSets} settings={settings} />}
-              </>
-            )}
-          </>
-        )}
-
-        {tab === 'history' && (
-          <>
-            {history.length === 0 && <div className="empty">No history yet.</div>}
-            {[...history].reverse().map(({ workout, we }) => {
-              const labels = setLabels(we.sets);
-              return (
-                <div key={we.id} className="card tappable" onClick={() => push({ name: 'workout', id: workout.id })}>
-                  <div style={{ fontWeight: 600 }}>{workout.title}</div>
-                  <div className="small muted" style={{ marginBottom: 6 }}>
-                    {fmtDate(workout.startedAt)}
-                  </div>
-                  {we.sets.map((s, i) => (
-                    <div key={s.id} className="set-line">
-                      <span className={`idx set-num ${s.kind}`} style={{ height: 'auto', textAlign: 'left' }}>
-                        {labels[i]}
-                      </span>
-                      <span>{describeSet(s, ex.type, settings)}</span>
-                      {usesWeight(ex.type) && usesReps(ex.type) && s.weight && s.reps ? (
-                        <span className="muted small">1RM {fmtWeight(oneRepMax(s.weight, s.reps), settings)}</span>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              );
-            })}
-          </>
-        )}
-      </div>
+      <SwipeTabs
+        initial={tab}
+        tabs={[
+          { label: 'How To', content: <HowTo ex={ex} /> },
+          { label: 'Summary', content: <Summary ex={ex} workouts={workouts} settings={settings} /> },
+          { label: 'History', content: <History ex={ex} workouts={workouts} settings={settings} /> },
+        ]}
+      />
       {confirmDelete && (
         <Confirm
           title="Delete custom exercise?"
@@ -263,29 +132,177 @@ export function ExerciseDetailScreen({ id }: { id: string }) {
   );
 }
 
-function RecordRow({ label, value }: { label: string; value: string }) {
+function HowTo({ ex }: { ex: Exercise }) {
+  const intensity: Partial<Record<Muscle, number>> = { [ex.primary]: 1, ...Object.fromEntries(ex.secondary.map((x) => [x, 0.35])) };
   return (
-    <div className="row between" style={{ padding: '7px 0' }}>
-      <span className="muted">{label}</span>
-      <strong>{value}</strong>
-    </div>
+    <>
+      <ExerciseDemo ex={ex} />
+      <div className="row" style={{ marginBottom: 16 }}>
+        {!ex.image && <ExerciseIcon ex={ex} size={64} />}
+        <div className="grow">
+          <div style={{ fontWeight: 700, fontSize: 19 }}>{ex.name}</div>
+          <div className="small muted" style={{ marginTop: 4 }}>
+            {EQUIPMENT_LABELS[ex.equipment]} · {TYPE_LABELS[ex.type]}
+          </div>
+        </div>
+      </div>
+      {ex.description && <p style={{ lineHeight: 1.5, marginTop: 0 }}>{ex.description}</p>}
+      <div className="card">
+        <div className="small muted" style={{ marginBottom: 6 }}>
+          Primary
+        </div>
+        <span className="tag primary">{MUSCLE_LABELS[ex.primary]}</span>
+        {ex.secondary.length > 0 && (
+          <>
+            <div className="small muted" style={{ margin: '6px 0' }}>
+              Secondary
+            </div>
+            {ex.secondary.map((x) => (
+              <span key={x} className="tag secondary">
+                {MUSCLE_LABELS[x]}
+              </span>
+            ))}
+          </>
+        )}
+        {ex.primary !== 'cardio' && (
+          <div style={{ marginTop: 12 }}>
+            <BodyMap intensity={intensity} height={260} />
+          </div>
+        )}
+      </div>
+      {ex.instructions.length > 0 && (
+        <>
+          <div className="section-title">Instructions</div>
+          <ol className="steps">
+            {ex.instructions.map((step, i) => (
+              <li key={i}>{step}</li>
+            ))}
+          </ol>
+        </>
+      )}
+      {ex.tips && ex.tips.length > 0 && (
+        <>
+          <div className="section-title">Tips</div>
+          <div className="card">
+            {ex.tips.map((t, i) => (
+              <div key={i} className="row" style={{ alignItems: 'flex-start', padding: '4px 0' }}>
+                <span>💡</span>
+                <span style={{ lineHeight: 1.45 }}>{t}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </>
   );
 }
 
-function RepMaxTable({ sets, settings }: { sets: WorkoutExercise['sets']; settings: Settings }) {
-  const rows = [1, 2, 3, 5, 8, 10, 12].map((reps) => {
-    const w = Math.max(0, ...sets.filter((s) => s.done && (s.reps ?? 0) >= reps).map((s) => s.weight ?? 0));
-    return { reps, w };
-  });
-  if (!rows.some((r) => r.w > 0)) return null;
+function Summary({ ex, workouts, settings }: { ex: Exercise; workouts: Workout[]; settings: Settings }) {
+  const history = useMemo(() => exerciseHistory(workouts, ex.id), [workouts, ex.id]);
+  const records = recordIndex(workouts).byExercise.get(ex.id);
+  const metrics = metricsFor(ex, settings);
+  const [metric, setMetric] = useState(metrics[0]?.key ?? '');
+  const m = metrics.find((x) => x.key === metric) ?? metrics[0];
+
+  if (!history.length || !records)
+    return (
+      <div className="empty">
+        <div className="big">📈</div>
+        Log this exercise in a workout to see your progress and personal records here.
+      </div>
+    );
+
+  const repMax = Object.entries(records.repMax)
+    .map(([reps, r]) => ({ reps: Number(reps), ...r }))
+    .sort((a, b) => a.reps - b.reps);
+
   return (
     <>
-      <div className="section-title">Set Records</div>
-      <div className="card">
-        {rows.map((r) => (
-          <RecordRow key={r.reps} label={`${r.reps} Rep Max`} value={r.w ? fmtWeight(r.w, settings) : '-'} />
-        ))}
+      <Segmented value={m.key} options={metrics.map((x) => ({ value: x.key, label: x.label }))} onChange={setMetric} />
+      <div className="card" style={{ marginTop: 12 }}>
+        <LineChart key={m.key} data={history.slice(-20).map((h) => ({ label: fmtShortDate(h.workout.startedAt), value: m.value(h.we, ex) }))} format={m.format} />
       </div>
+
+      <div className="section-title">Personal Records</div>
+      <div className="card">
+        {recordKeysFor(ex.type).map((k) => {
+          const r = records.best[k];
+          if (!r) return null;
+          return (
+            <div key={k} className="record-row" onClick={() => push({ name: 'workout', id: r.workoutId })} role="button">
+              <span className="pr-icon">🏆</span>
+              <div className="grow">
+                <div>{RECORD_LABELS[k]}</div>
+                <div className="tiny muted">{fmtDate(r.date)}</div>
+              </div>
+              <strong>
+                {fmtRecord(k, r.value, ex, settings)}
+                {k === 'weight' && r.reps && usesReps(ex.type) ? <span className="muted"> × {r.reps}</span> : null}
+              </strong>
+            </div>
+          );
+        })}
+        <div className="record-row">
+          <span className="pr-icon">📅</span>
+          <div className="grow">Times Performed</div>
+          <strong>{records.sessions}</strong>
+        </div>
+      </div>
+
+      {repMax.length > 0 && (
+        <>
+          <div className="section-title">Set Records</div>
+          <div className="card">
+            <div className="row small muted" style={{ paddingBottom: 6 }}>
+              <span style={{ width: 56 }}>Reps</span>
+              <span className="grow">Best Weight</span>
+              <span>Date</span>
+            </div>
+            {repMax.map((r) => (
+              <div key={r.reps} className="row" style={{ padding: '7px 0', borderTop: '1px solid var(--border)' }}>
+                <span style={{ width: 56, fontWeight: 600 }}>{r.reps}</span>
+                <span className="grow">{fmtWeight(r.value, settings)}</span>
+                <span className="small muted">{fmtShortDate(r.date)}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+function History({ ex, workouts, settings }: { ex: Exercise; workouts: Workout[]; settings: Settings }) {
+  const history = useMemo(() => exerciseHistory(workouts, ex.id).reverse(), [workouts, ex.id]);
+  const prSets = recordIndex(workouts).prSets;
+  if (!history.length) return <div className="empty">No history yet.</div>;
+  return (
+    <>
+      {history.map(({ workout, we }) => {
+        const labels = setLabels(we.sets);
+        return (
+          <div key={we.id} className="card tappable" onClick={() => push({ name: 'workout', id: workout.id })}>
+            <div style={{ fontWeight: 600 }}>{workout.title}</div>
+            <div className="small muted" style={{ marginBottom: 6 }}>
+              {fmtDate(workout.startedAt)}
+            </div>
+            {we.sets.map((s, i) => (
+              <div key={s.id} className="set-line">
+                <span className={`idx set-num ${s.kind}`} style={{ height: 'auto', textAlign: 'left' }}>
+                  {labels[i]}
+                </span>
+                <span className="grow">
+                  {describeSet(s, ex.type, settings)}
+                  {prSets.has(s.id) && <span className="pr-mark" style={{ marginLeft: 6 }}>🏆</span>}
+                </span>
+                {usesWeight(ex.type) && usesReps(ex.type) && s.weight && s.reps ? (
+                  <span className="muted small">1RM {fmtWeight(oneRepMax(s.weight, s.reps), settings)}</span>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        );
+      })}
     </>
   );
 }

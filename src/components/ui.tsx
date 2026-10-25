@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import type { Exercise } from '../types';
 import { useBackHandler } from '../lib/nav';
 import { Icon } from './Icon';
@@ -162,5 +162,51 @@ export function ExerciseDemo({ ex }: { ex: Exercise }) {
         />
       ))}
     </div>
+  );
+}
+
+/**
+ * Tabs whose pages can be swiped left/right (CSS scroll-snap). The underline follows the finger;
+ * the active tab updates when a page settles.
+ */
+export function SwipeTabs({ tabs, initial = 0 }: { tabs: { label: string; content: ReactNode }[]; initial?: number }) {
+  const pager = useRef<HTMLDivElement>(null);
+  const ink = useRef<HTMLDivElement>(null);
+  const [index, setIndex] = useState(initial);
+
+  useLayoutEffect(() => {
+    const el = pager.current;
+    if (el && initial) el.scrollLeft = initial * el.clientWidth;
+  }, [initial]);
+
+  const onScroll = () => {
+    const el = pager.current;
+    if (!el || !el.clientWidth) return;
+    const pos = el.scrollLeft / el.clientWidth;
+    if (ink.current) ink.current.style.transform = `translateX(${pos * 100}%)`;
+    const i = Math.round(pos);
+    if (i !== index) setIndex(i);
+  };
+
+  const go = (i: number) => pager.current?.scrollTo({ left: i * pager.current.clientWidth, behavior: 'smooth' });
+
+  return (
+    <>
+      <div className="tabs swipe">
+        {tabs.map((t, i) => (
+          <button key={t.label} className={i === index ? 'active' : ''} onClick={() => go(i)}>
+            {t.label}
+          </button>
+        ))}
+        <div ref={ink} className="tab-ink" style={{ width: `${100 / tabs.length}%`, transform: `translateX(${initial * 100}%)` }} />
+      </div>
+      <div ref={pager} className="pager" onScroll={onScroll}>
+        {tabs.map((t) => (
+          <div key={t.label} className="page">
+            {t.content}
+          </div>
+        ))}
+      </div>
+    </>
   );
 }

@@ -3,7 +3,8 @@ import { useEffect, useRef, useSyncExternalStore } from 'react';
 export type Tab = 'home' | 'workout' | 'exercises' | 'profile';
 
 export type Route =
-  | { name: 'exercise'; id: string }
+  | { name: 'exercise'; id: string; tab?: number }
+  | { name: 'records' }
   | { name: 'workout'; id: string; fresh?: boolean }
   | { name: 'routine'; id?: string; fromWorkoutId?: string }
   | { name: 'active' }

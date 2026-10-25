@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { memo, useEffect } from 'react';
 import { Icon } from './components/Icon';
 import { fmtClock } from './lib/format';
 import { cancelRestNotification, initNative, onAppStateChange, restFinishedAlert, scheduleRestNotification } from './lib/native';
@@ -10,7 +10,7 @@ import { ActiveWorkoutScreen } from './screens/ActiveWorkout';
 import { CreateExerciseScreen, ExerciseDetailScreen, ExercisesTab } from './screens/Exercises';
 import { FinishWorkoutScreen } from './screens/FinishWorkout';
 import { HomeScreen } from './screens/Home';
-import { ProfileScreen, SettingsScreen } from './screens/Profile';
+import { ProfileScreen, RecordsScreen, SettingsScreen } from './screens/Profile';
 import { RoutineEditorScreen } from './screens/RoutineEditor';
 import { WorkoutDetailScreen } from './screens/WorkoutDetail';
 import { WorkoutTab } from './screens/WorkoutTab';
@@ -31,7 +31,9 @@ function renderRoute(r: Route) {
     case 'workout':
       return <WorkoutDetailScreen id={r.id} fresh={r.fresh} />;
     case 'exercise':
-      return <ExerciseDetailScreen id={r.id} />;
+      return <ExerciseDetailScreen id={r.id} tab={r.tab} />;
+    case 'records':
+      return <RecordsScreen />;
     case 'routine':
       return <RoutineEditorScreen id={r.id} />;
     case 'settings':
@@ -39,6 +41,39 @@ function renderRoute(r: Route) {
     case 'createExercise':
       return <CreateExerciseScreen />;
   }
+}
+
+// Screens are memoised: the shell re-renders on navigation, but screens only re-render from their own store subscriptions.
+const RouteView = memo(function RouteView({ route }: { route: Route }) {
+  return renderRoute(route);
+});
+const TAB_SCREENS: Record<Tab, React.MemoExoticComponent<() => React.JSX.Element>> = {
+  home: memo(HomeScreen),
+  workout: memo(WorkoutTab),
+  exercises: memo(ExercisesTab),
+  profile: memo(ProfileScreen),
+};
+
+function ActiveBar() {
+  const active = useStore((s) => s.active);
+  const rest = useStore((s) => s.rest);
+  const now = useNow(1000, !!active);
+  if (!active) return null;
+  return (
+    <button className="mini-bar" onClick={() => push({ name: 'active' })}>
+      <span className="pulse" />
+      <div className="grow" style={{ textAlign: 'left' }}>
+        <div style={{ fontWeight: 600 }} className="ellipsis">
+          {active.title}
+        </div>
+        <div className="small muted">
+          Workout in progress · {fmtClock((now - active.startedAt) / 1000)}
+          {rest ? ` · Rest ${fmtClock((rest.endsAt - now) / 1000)}` : ''}
+        </div>
+      </div>
+      <span className="link">Resume</span>
+    </button>
+  );
 }
 
 /** Watches the rest timer and fires the alert when it reaches zero. */
@@ -58,10 +93,8 @@ function useRestWatcher() {
 
 export default function App() {
   const { tab, stack } = useNav();
-  const active = useStore((s) => s.active);
-  const rest = useStore((s) => s.rest);
   const onActive = stack.some((r) => r.name === 'active' || r.name === 'finish');
-  const now = useNow(1000, !!active && !onActive);
+  const TabScreen = TAB_SCREENS[tab];
   useRestWatcher();
 
   useEffect(() => {
@@ -77,32 +110,15 @@ export default function App() {
   return (
     <div className="app">
       <div className="main-area">
-        {tab === 'home' && <HomeScreen />}
-        {tab === 'workout' && <WorkoutTab />}
-        {tab === 'exercises' && <ExercisesTab />}
-        {tab === 'profile' && <ProfileScreen />}
+        <TabScreen />
         {stack.map((r, i) => (
           <div key={i} className="screen pushed" style={{ zIndex: 50 + i }}>
-            {renderRoute(r)}
+            <RouteView route={r} />
           </div>
         ))}
       </div>
 
-      {active && !onActive && (
-        <button className="mini-bar" onClick={() => push({ name: 'active' })}>
-          <span className="pulse" />
-          <div className="grow" style={{ textAlign: 'left' }}>
-            <div style={{ fontWeight: 600 }} className="ellipsis">
-              {active.title}
-            </div>
-            <div className="small muted">
-              Workout in progress · {fmtClock((now - active.startedAt) / 1000)}
-              {rest ? ` · Rest ${fmtClock((rest.endsAt - now) / 1000)}` : ''}
-            </div>
-          </div>
-          <span className="link">Resume</span>
-        </button>
-      )}
+      {!onActive && <ActiveBar />}
 
       {!onActive && (
         <nav className="tabbar">

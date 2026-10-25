@@ -7,7 +7,8 @@ import { MUSCLE_LABELS } from '../data/meta';
 import { fmtDate, fmtDistance, fmtDuration, fmtNumber, fmtPace, fmtTime, fmtWeight, fromLocalInput, toLocalInput } from '../lib/format';
 import { pop, push } from '../lib/nav';
 import { getExercise, useStore } from '../lib/store';
-import { cardioTotals, comparisonFor, completedSets, exerciseVolume, muscleSplit, recordsIn, totalReps, workoutVolume } from '../lib/stats';
+import { RECORD_LABELS, fmtRecord, recordIndex } from '../lib/records';
+import { cardioTotals, comparisonFor, completedSets, exerciseVolume, muscleSplit, totalReps, workoutVolume } from '../lib/stats';
 import { deleteWorkout, routineFromWorkout, saveRoutine, saveWorkout } from '../lib/workout';
 import type { Workout } from '../types';
 
@@ -20,7 +21,8 @@ export function WorkoutDetailScreen({ id, fresh }: { id: string; fresh?: boolean
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
-  const records = useMemo(() => (w ? recordsIn(w, workouts) : []), [w, workouts]);
+  const idx = recordIndex(workouts);
+  const records = (w && idx.byWorkout.get(w.id)) || [];
   const split = useMemo(() => (w ? muscleSplit([w]) : []), [w]);
 
   if (!w) return null;
@@ -74,7 +76,7 @@ export function WorkoutDetailScreen({ id, fresh }: { id: string; fresh?: boolean
                 label="Records"
                 value={
                   <span style={{ color: 'var(--yellow)' }}>
-                    🏅 {records.length}
+                    🏆 {records.length}
                   </span>
                 }
               />
@@ -113,9 +115,15 @@ export function WorkoutDetailScreen({ id, fresh }: { id: string; fresh?: boolean
             <div className="section-title">Personal Records</div>
             <div className="card">
               {records.map((r, i) => (
-                <div key={i} className="row between" style={{ padding: '6px 0' }}>
-                  <span className="ellipsis">{r.exercise.name}</span>
-                  <span className="pr-badge">🏅 {r.label}</span>
+                <div key={i} className="record-row" onClick={() => push({ name: 'exercise', id: r.exercise.id, tab: 1 })} role="button">
+                  <ExerciseIcon ex={r.exercise} size={34} />
+                  <div className="grow" style={{ minWidth: 0 }}>
+                    <div className="ellipsis">{r.exercise.name}</div>
+                    <div className="tiny muted">
+                      {RECORD_LABELS[r.key]} · was {fmtRecord(r.key, r.previous, r.exercise, settings)}
+                    </div>
+                  </div>
+                  <span className="pr-badge">🏆 {fmtRecord(r.key, r.value, r.exercise, settings)}</span>
                 </div>
               ))}
             </div>
@@ -167,7 +175,10 @@ export function WorkoutDetailScreen({ id, fresh }: { id: string; fresh?: boolean
                   <span className={`idx set-num ${s.kind}`} style={{ height: 'auto', textAlign: 'left' }}>
                     {labels[i]}
                   </span>
-                  <span>{describeSet(s, ex.type, settings)}</span>
+                  <span>
+                    {describeSet(s, ex.type, settings)}
+                    {idx.prSets.has(s.id) && <span className="pr-mark" style={{ marginLeft: 6 }}>🏆</span>}
+                  </span>
                   {ex.type === 'distance_duration' && s.distance && s.duration ? (
                     <span className="muted">{fmtPace(s.duration, s.distance, settings)}</span>
                   ) : null}

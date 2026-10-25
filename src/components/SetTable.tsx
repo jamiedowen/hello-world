@@ -89,6 +89,7 @@ export function SetTable({
   settings,
   previous,
   plan,
+  prSets,
   onChange,
   onToggle,
   onRemove,
@@ -98,6 +99,7 @@ export function SetTable({
   settings: Settings;
   previous?: WorkoutSet[];
   plan?: boolean; // routine editor: no "done" column
+  prSets?: Set<string>; // sets that beat a personal record
   onChange: (index: number, patch: Partial<WorkoutSet>) => void;
   onToggle?: (index: number) => void;
   onRemove: (index: number) => void;
@@ -128,6 +130,7 @@ export function SetTable({
           <div key={set.id} className={`set-row ${three ? 'three' : ''} ${set.done ? 'done' : ''}`} style={gridStyle}>
             <button className={`set-num ${set.kind}`} onClick={() => setKindFor(i)} aria-label="Set type">
               {labels[i]}
+              {prSets?.has(set.id) && <span className="pr-dot">🏆</span>}
             </button>
             <button
               className="prev"

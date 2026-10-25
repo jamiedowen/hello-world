@@ -1,16 +1,19 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { Icon } from '../components/Icon';
 import { ExerciseIcon, ExerciseThumb, Stat, TopBar } from '../components/ui';
 import { fmtDistance, fmtDuration, fmtWeight, timeAgo } from '../lib/format';
 import { push, setTab } from '../lib/nav';
+import { useProgressiveList } from '../lib/useNow';
 import { getExercise, useStore } from '../lib/store';
-import { cardioTotals, recordsIn, streakWeeks, workoutVolume } from '../lib/stats';
+import { recordIndex } from '../lib/records';
+import { cardioTotals, streakWeeks, workoutVolume } from '../lib/stats';
 import type { Settings, Workout } from '../types';
 
 export function HomeScreen() {
   const workouts = useStore((s) => s.workouts);
   const settings = useStore((s) => s.settings);
   const streak = useMemo(() => streakWeeks(workouts), [workouts]);
+  const { visible, onScroll } = useProgressiveList(workouts, 10);
 
   return (
     <div className="screen">
@@ -22,7 +25,7 @@ export function HomeScreen() {
           </button>
         }
       />
-      <div className="content">
+      <div className="content" onScroll={onScroll}>
         {workouts.length > 0 && (
           <div className="card row" style={{ gap: 20 }}>
             <Stat big label="Workouts" value={workouts.length} />
@@ -39,7 +42,7 @@ export function HomeScreen() {
             </button>
           </div>
         )}
-        {workouts.map((w) => (
+        {visible.map((w) => (
           <WorkoutCard key={w.id} w={w} all={workouts} settings={settings} />
         ))}
       </div>
@@ -47,8 +50,8 @@ export function HomeScreen() {
   );
 }
 
-function WorkoutCard({ w, all, settings }: { w: Workout; all: Workout[]; settings: Settings }) {
-  const records = useMemo(() => recordsIn(w, all).length, [w, all]);
+const WorkoutCard = memo(function WorkoutCard({ w, all, settings }: { w: Workout; all: Workout[]; settings: Settings }) {
+  const records = recordIndex(all).byWorkout.get(w.id)?.length ?? 0;
   const cardio = cardioTotals(w);
   const volume = workoutVolume(w);
   return (
@@ -65,7 +68,7 @@ function WorkoutCard({ w, all, settings }: { w: Workout; all: Workout[]; setting
         <Stat label="Time" value={fmtDuration((w.endedAt - w.startedAt) / 1000)} />
         {volume > 0 && <Stat label="Volume" value={fmtWeight(volume, settings, 0)} />}
         {cardio.distance > 0 && <Stat label="Distance" value={fmtDistance(cardio.distance, settings)} />}
-        {records > 0 && <Stat label="Records" value={<span style={{ color: 'var(--yellow)' }}>🏅 {records}</span>} />}
+        {records > 0 && <Stat label="Records" value={<span style={{ color: 'var(--yellow)' }}>🏆 {records}</span>} />}
       </div>
       <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8 }}>
         {w.exercises.slice(0, 3).map((we) => {
@@ -84,4 +87,4 @@ function WorkoutCard({ w, all, settings }: { w: Workout; all: Workout[]; setting
       </div>
     </div>
   );
-}
+});

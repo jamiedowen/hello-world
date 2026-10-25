@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useProgressiveList } from '../lib/useNow';
 import { EQUIPMENT_LABELS, MUSCLE_GROUPS, MUSCLE_LABELS } from '../data/meta';
 import { push, useBackHandler } from '../lib/nav';
 import { allExercises, useStore } from '../lib/store';
@@ -120,6 +121,7 @@ export function ExercisePicker({
 }) {
   useBackHandler(onClose);
   const f = useExerciseFilter();
+  const { visible, onScroll } = useProgressiveList(f.list);
   const [selected, setSelected] = useState<string[]>([]);
   const toggle = (id: string) => {
     if (single) return onSelect([id]);
@@ -142,8 +144,8 @@ export function ExercisePicker({
         center
       />
       <ExerciseFilters {...f} />
-      <div className="content flush" style={{ paddingTop: 0 }}>
-        {f.list.map((ex) => (
+      <div className="content flush" style={{ paddingTop: 0 }} onScroll={onScroll}>
+        {visible.map((ex) => (
           <ExerciseRow
             key={ex.id}
             ex={ex}
