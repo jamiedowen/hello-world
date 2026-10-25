@@ -1037,3 +1037,41 @@ ol.steps li::before {
   margin-left: 1px;
   vertical-align: 1px;
 }
+
+/* ───── Heart rate ───── */
+.hr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 9px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 58px;
+  justify-content: center;
+}
+.hr-chip .heart {
+  color: var(--text-3);
+}
+.hr-chip.live {
+  color: var(--text);
+  background: rgba(229, 57, 47, 0.16);
+}
+.hr-chip.live .heart {
+  color: #e5392f;
+  animation: beat 1s infinite;
+}
+@keyframes beat {
+  0%, 100% { transform: scale(1); }
+  15% { transform: scale(1.25); }
+}
+details.card summary {
+  cursor: pointer;
+}
+.wo-stats .hr-chip {
+  padding: 0;
+  background: none;
+  min-width: 0;
+}

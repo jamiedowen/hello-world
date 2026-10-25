@@ -21,6 +21,7 @@ export const DEFAULT_SETTINGS: Settings = {
   restSound: true,
   restVibrate: true,
   name: 'Athlete',
+  maxHr: 190,
 };
 
 /*

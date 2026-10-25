@@ -5,7 +5,7 @@ import { cancelRestNotification, initNative, onAppStateChange, restFinishedAlert
 import { handleBack, push, setTab, useNav, type Route, type Tab } from './lib/nav';
 import { getState, useStore } from './lib/store';
 import { useNow } from './lib/useNow';
-import { stopRest } from './lib/workout';
+import { startHeartRate, stopRest } from './lib/workout';
 import { ActiveWorkoutScreen } from './screens/ActiveWorkout';
 import { CreateExerciseScreen, ExerciseDetailScreen, ExercisesTab } from './screens/Exercises';
 import { FinishWorkoutScreen } from './screens/FinishWorkout';
@@ -99,6 +99,7 @@ export default function App() {
 
   useEffect(() => {
     initNative(handleBack);
+    startHeartRate();
     // Only use a system notification while the app is backgrounded; in the foreground the in-app alert fires.
     onAppStateChange((isActive) => {
       const r = getState().rest;

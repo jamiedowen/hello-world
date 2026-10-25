@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { BodyMap, intensityFromSplit } from '../components/BodyMap';
+import { HeartRateCard } from '../components/HeartRate';
 import { Icon } from '../components/Icon';
 import { describeSet, setLabels } from '../components/SetTable';
 import { BackButton, Confirm, ExerciseIcon, ExerciseThumb, Sheet, SheetItem, Stat, TopBar } from '../components/ui';
@@ -95,6 +96,8 @@ export function WorkoutDetailScreen({ id, fresh }: { id: string; fresh?: boolean
             </div>
           </div>
         )}
+
+        <HeartRateCard w={w} />
 
         {cardio.distance > 0 && (
           <div className="card compare">

@@ -47,7 +47,17 @@ export function BarChart({ data, format }: { data: { label: string; value: numbe
   );
 }
 
-export function LineChart({ data, format }: { data: { label: string; value: number }[]; format: (v: number) => string }) {
+export function LineChart({
+  data,
+  format,
+  dots = true,
+  color = 'var(--accent)',
+}: {
+  data: { label: string; value: number }[];
+  format: (v: number) => string;
+  dots?: boolean;
+  color?: string;
+}) {
   const [sel, setSel] = useState(data.length - 1);
   if (data.length === 0) return <div className="muted small">No data yet.</div>;
   const vals = data.map((d) => d.value);
@@ -72,18 +82,20 @@ export function LineChart({ data, format }: { data: { label: string; value: numb
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }}>
         <defs>
-          <linearGradient id="lg" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0" stopColor="var(--accent)" stopOpacity="0.35" />
-            <stop offset="1" stopColor="var(--accent)" stopOpacity="0" />
+          <linearGradient id={`lg${color.replace(/\W/g, '')}`} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stopColor={color} stopOpacity="0.35" />
+            <stop offset="1" stopColor={color} stopOpacity="0" />
           </linearGradient>
         </defs>
         <line x1={PAD.l} x2={W - PAD.r} y1={PAD.t + ih} y2={PAD.t + ih} stroke="var(--border)" />
-        <path d={area} fill="url(#lg)" />
-        <path d={path} fill="none" stroke="var(--accent)" strokeWidth={2.5} strokeLinejoin="round" />
+        <path d={area} fill={`url(#lg${color.replace(/\W/g, '')})`} />
+        <path d={path} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" />
         {data.map((d, i) => (
           <g key={i} onClick={() => setSel(i)} style={{ cursor: 'pointer' }}>
             <circle cx={x(i)} cy={y(d.value)} r={14} fill="transparent" />
-            <circle cx={x(i)} cy={y(d.value)} r={i === sel ? 5 : 3} fill={i === sel ? '#fff' : 'var(--accent)'} stroke="var(--accent)" strokeWidth={2} />
+            {(dots || i === sel) && (
+              <circle cx={x(i)} cy={y(d.value)} r={i === sel ? 5 : 3} fill={i === sel ? '#fff' : color} stroke={color} strokeWidth={2} />
+            )}
           </g>
         ))}
         <text x={PAD.l} y={H - 6} fontSize="10" fill="var(--text-3)">

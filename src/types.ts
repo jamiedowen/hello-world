@@ -98,6 +98,7 @@ export interface Workout {
   endedAt: number; // epoch ms
   exercises: WorkoutExercise[];
   routineId?: string;
+  hr?: [number, number][]; // heart-rate samples: [seconds since start, bpm]
 }
 
 export interface ActiveWorkout {
@@ -134,6 +135,8 @@ export interface Settings {
   restSound: boolean;
   restVibrate: boolean;
   name: string;
+  hrDevice?: { id: string; name: string }; // paired Bluetooth heart-rate source (e.g. Garmin broadcast)
+  maxHr: number;
 }
 
 export interface RestTimer {

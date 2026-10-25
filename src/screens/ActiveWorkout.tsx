@@ -1,5 +1,6 @@
 import { memo, useMemo, useState } from 'react';
 import { BackButton, Confirm, ExerciseIcon, Sheet, SheetItem, TopBar } from '../components/ui';
+import { HrChip } from '../components/HeartRate';
 import { Icon } from '../components/Icon';
 import { ExercisePicker } from '../components/ExercisePicker';
 import { REST_OPTIONS, SetTable, fillFromPrevious } from '../components/SetTable';
@@ -194,6 +195,7 @@ export function ActiveWorkoutScreen() {
           <div className="label">Sets</div>
           <div className="value">{completedSets(active)}</div>
         </div>
+        <HrChip />
       </div>
 
       <div className="content flush" style={{ paddingTop: 0 }}>

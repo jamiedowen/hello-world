@@ -9,6 +9,7 @@ import { pop, push } from '../lib/nav';
 import { RECORD_LABELS, fmtRecord, recentPrs, recordIndex, recordKeysFor } from '../lib/records';
 import { exportData, getExercise, importData, setState, useStore } from '../lib/store';
 import { cardioTotals, muscleSplit, totalReps, weekStart, workoutVolume } from '../lib/stats';
+import { HeartRateSettings } from '../components/HeartRate';
 import { NumInput } from '../components/NumInput';
 import { REST_OPTIONS } from '../components/SetTable';
 import type { Workout } from '../types';
@@ -271,6 +272,9 @@ export function SettingsScreen() {
             placeholder="Optional"
           />
         </label>
+
+        <div className="section-title">Heart Rate</div>
+        <HeartRateSettings />
 
         <div className="section-title">Rest Timer</div>
         <label className="field">

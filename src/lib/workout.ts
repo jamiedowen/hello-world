@@ -1,5 +1,6 @@
 import type { ActiveWorkout, Routine, RoutineExercise, Workout, WorkoutExercise, WorkoutSet } from '../types';
 import { uid } from './format';
+import { connect as connectHr, disconnect as disconnectHr, startRecording, takeRecording } from './heartRate';
 import { cancelRestNotification } from './native';
 import { getExercise, getState, setState } from './store';
 
@@ -38,6 +39,15 @@ export function startWorkout(routine?: Routine) {
     })),
   };
   setState({ active, rest: null });
+  startHeartRate();
+}
+
+/** Record heart rate for the active workout if a monitor is paired (also used to resume after a restart). */
+export function startHeartRate() {
+  const { active, settings } = getState();
+  if (!active || !settings.hrDevice) return;
+  startRecording(active.id, active.startedAt);
+  connectHr(settings.hrDevice);
 }
 
 export function updateActive(fn: (a: ActiveWorkout) => ActiveWorkout) {
@@ -103,7 +113,9 @@ export function finishWorkout(opts: { title: string; notes?: string; startedAt: 
     endedAt: Math.max(opts.endedAt, opts.startedAt),
     routineId: a.routineId,
     exercises,
+    hr: takeRecording(a.id),
   };
+  disconnectHr();
   setState((s) => ({
     workouts: [w, ...s.workouts].sort((x, y) => y.startedAt - x.startedAt),
     active: null,
@@ -114,6 +126,9 @@ export function finishWorkout(opts: { title: string; notes?: string; startedAt: 
 }
 
 export function discardWorkout() {
+  const a = getState().active;
+  if (a) takeRecording(a.id);
+  disconnectHr();
   setState({ active: null, rest: null });
   cancelRestNotification();
 }
